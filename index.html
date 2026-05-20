@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>货币战争 (A8N40) - 纯前端版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="player-header">
+            <div>玩家血量: <span id="player-hp">1000</span></div>
+            <div>金币: <span id="player-gold">3</span></div>
+            <div>当前阶段: <span id="game-stage">准备阶段</span></div>
+            <div>回合: <span id="game-round">1</span></div>
+        </div>
+
+        <div id="combat-zone" class="hidden">
+            <h3>战场模拟</h3>
+            <div id="battle-log">战斗即将开始...</div>
+            <div class="team-vs">
+                <div id="player-team-view">我方阵容</div>
+                <div class="vs-text">VS</div>
+                <div id="enemy-team-view">敌方怪物</div>
+            </div>
+        </div>
+
+        <div id="prepare-zone">
+            <div class="board-section">
+                <h4>上阵主力 (最多5人)</h4>
+                <div id="battle-slots" class="slots-container"></div>
+                <h4>备战席 (最多8人)</h4>
+                <div id="bench-slots" class="slots-container"></div>
+            </div>
+
+            <div id="shop-container">
+                <div class="shop-controls">
+                    <button id="btn-refresh">刷新商店 (2金币)</button>
+                    <button id="btn-combat">开始战斗</button>
+                </div>
+                <div id="shop-items"></div>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
