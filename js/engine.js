@@ -225,13 +225,18 @@ const Game = {
         }
         this._setHTML('bench-slots', benchHTML);
 
-        // 绑定拖拽与点击
+        // 绑定拖拽与点击 - 使用事件委托确保所有元素都能正确响应
+        const deploySection = this._el('deploy-section');
+        
+        // 为所有卡牌和空槽位绑定事件
         document.querySelectorAll('.card, .slot.empty').forEach(el => {
             el.ondragover = (e) => e.preventDefault();
             el.ondrop = (e) => {
                 e.preventDefault();
                 const data = e.dataTransfer.getData('text/plain');
-                this.assignCard(data, el.dataset.slot);
+                if (data) {
+                    this.assignCard(data, el.dataset.slot);
+                }
             };
             el.onclick = () => {
                 if (el.classList.contains('empty')) {
@@ -239,11 +244,16 @@ const Game = {
                     if (benchIdx !== -1) this.assignCard(`bench_${benchIdx}`, el.dataset.slot);
                 }
             };
-            // 为卡牌添加拖拽开始事件
+            // 为所有卡牌添加拖拽开始事件（包括前台、后台、备战席）
             if (el.classList.contains('card')) {
                 el.ondragstart = (e) => {
                     e.dataTransfer.setData('text/plain', el.dataset.slot);
-                    e.dataTransfer.setData('card-cost', el.querySelector('.cost')?.textContent || '');
+                    const costText = el.querySelector('.cost')?.textContent || '';
+                    e.dataTransfer.setData('card-cost', costText);
+                    console.log('dragstart:', el.dataset.slot, 'cost:', costText);
+                };
+                el.ondragend = (e) => {
+                    console.log('dragend:', el.dataset.slot);
                 };
             }
         });
