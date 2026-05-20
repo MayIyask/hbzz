@@ -3,45 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>崩坏：星穹铁道 | 货币战争 V4.2 完整图鉴</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>货币战争 V4.2 • 策略对战</title>
+    <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-    <header>
-        <div class="header-left">
-            <h1>🎲 货币战争 • 零和博弈</h1>
-            <span class="badge">V4.2 完整数据版</span>
+    <div id="game-container">
+        <header>
+            <div class="stat-row">
+                <span class="stat" id="s-gold">💰 0</span>
+                <span class="stat" id="s-lvl">⭐ Lv.3</span>
+                <span class="stat" id="s-xp">📖 0/4</span>
+                <span class="stat" id="s-hp">❤️ 40/40</span>
+                <span class="stat" id="s-node">📍 1-1</span>
+            </div>
+            <div class="actions">
+                <button id="btn-refresh">刷新(2💰)</button>
+                <button id="btn-levelup">升级(4💰)</button>
+                <button id="btn-start-battle" disabled>▶ 进入战斗</button>
+            </div>
+        </header>
+
+        <main id="main-view">
+            <!-- 商店区 -->
+            <section id="shop-panel">
+                <h3>🏪 人才招募</h3>
+                <div id="shop-grid" class="grid"></div>
+            </section>
+
+            <!-- 阵容区 -->
+            <section id="team-panel">
+                <h3>👥 备战席 & 上阵</h3>
+                <div class="team-layout">
+                    <div class="slot-group" id="frontline">
+                        <h4>前台</h4>
+                        <div class="slots" id="fl-slots"></div>
+                    </div>
+                    <div class="slot-group" id="backline">
+                        <h4>后台</h4>
+                        <div class="slots" id="bl-slots"></div>
+                    </div>
+                </div>
+                <div class="bench-group">
+                    <h4>备战席</h4>
+                    <div class="slots" id="bench-slots"></div>
+                </div>
+            </section>
+
+            <!-- 羁绊 & 面板 -->
+            <section id="info-panel">
+                <h3>🔗 羁绊状态</h3>
+                <div id="bond-list" class="tag-list">未激活</div>
+                <h3>📊 核心乘区</h3>
+                <div id="stats-preview" class="stats-grid"></div>
+            </section>
+        </main>
+
+        <footer id="log-panel">
+            <h3>📜 战报/事件</h3>
+            <div id="game-log" class="log-box"></div>
+        </footer>
+
+        <!-- 策略选择弹窗 -->
+        <div id="strategy-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>📜 选择投资策略</h3>
+                <div id="strategy-choices" class="choices"></div>
+            </div>
         </div>
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 全局搜索：角色、羁绊、装备、策略、词缀..." autocomplete="off">
-            <button id="clearSearch" title="清空搜索">✖</button>
+
+        <!-- 战斗结算弹窗 -->
+        <div id="battle-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 id="battle-title">⚔️ 战斗中</h3>
+                <div id="battle-log" class="log-box battle-log"></div>
+                <button id="btn-close-battle" class="hidden">确认</button>
+            </div>
         </div>
-    </header>
-
-    <nav id="tabBar">
-        <button class="tab active" data-target="bonds">🔗 羁绊</button>
-        <button class="tab" data-target="characters">👤 角色技能</button>
-        <button class="tab" data-target="equipment">🛡️ 装备道具</button>
-        <button class="tab" data-target="strategies">📊 投资策略</button>
-        <button class="tab" data-target="environments">🌍 投资环境</button>
-        <button class="tab" data-target="affixes">👹 敌人与词缀</button>
-        <button class="tab" data-target="multipliers">📐 伤害乘区</button>
-        <button class="tab" data-target="panels">📊 货币面板</button>
-        <button class="tab" data-target="triggers">⚡ 触发效果</button>
-        <button class="tab" data-target="gameplays">🎮 玩法与永动机</button>
-        <button class="tab" data-target="bugs">🐛 Bug与修复</button>
-        <button class="tab" data-target="announcements">📢 官方公告</button>
-    </nav>
-
-    <main id="content">
-        <!-- 动态渲染区域 -->
-    </main>
-
-    <footer>
-        <p>📖 数据来源：万有范德华力、绮罗、囤囤鼠 等社区整理 | 完整 V4.2 赛季扩充说明 | 仅供个人学习参考</p>
-    </footer>
+    </div>
 
     <script src="js/data.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/combat.js"></script>
 </body>
 </html>
