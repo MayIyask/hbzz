@@ -46,7 +46,21 @@
                     <div id="bench-slots" class="slots-9 drop-zone" data-zone="bench"></div>
                 </div>
             </div>
+            <!-- 羁绊与统计面板 -->
+            <div id="info-panel" style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                <div id="bonds-panel" style="flex:1;background:var(--surface);padding:0.6rem;border-radius:6px;border:1px solid var(--border);">
+                    <h4 style="font-size:0.75rem;color:var(--text-dim);margin-bottom:0.4rem;">🔗 激活羁绊</h4>
+                    <div id="bond-list" style="display:flex;flex-wrap:wrap;gap:0.3rem;"></div>
+                </div>
+                <div id="stats-panel" style="flex:1;background:var(--surface);padding:0.6rem;border-radius:6px;border:1px solid var(--border);">
+                    <h4 style="font-size:0.75rem;color:var(--text-dim);margin-bottom:0.4rem;">📊 队伍统计</h4>
+                    <div id="stats-preview"></div>
+                </div>
+            </div>
         </main>
+
+        <!-- 游戏日志 -->
+        <div id="game-log" style="position:fixed;top:60px;right:10px;width:280px;height:150px;background:rgba(0,0,0,0.8);border:1px solid var(--border);border-radius:6px;padding:0.5rem;overflow-y:auto;font-size:0.7rem;z-index:50;"></div>
 
         <!-- 4. 出售区域 (左右下角固定) -->
         <div id="sell-left" class="sell-zone">出售: <span class="price-val">0</span>💰</div>
