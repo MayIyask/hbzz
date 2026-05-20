@@ -55,6 +55,25 @@ const Game = {
             const idx = this.state.shop.findIndex(c => String(c.uid) === fromParts[1]);
             if (idx === -1) return;
             card = this.state.shop[idx];
+            // 从商店购买时，只能放到备战席
+            if (to !== 'bench') {
+                // 检查备战席是否有空位
+                if (this.state.team.bench.length >= 9) {
+                    return this.log('🎒 备战席已满');
+                }
+                if (this.state.gold < card['费']) return this.log('💰 金币不足');
+                this.state.gold -= card['费'];
+                this.state.shop.splice(idx, 1);
+                this.state.team.bench.push(card);
+                this.calcStats();
+                this.renderAll();
+                this.log(`🛒 购买 ${card['角色']} 至备战席`);
+                return;
+            }
+            // 默认拖拽到备战席
+            if (this.state.team.bench.length >= 9) {
+                return this.log('🎒 备战席已满');
+            }
             if (this.state.gold < card['费']) return this.log('💰 金币不足');
             this.state.gold -= card['费'];
             this.state.shop.splice(idx, 1);
@@ -69,10 +88,32 @@ const Game = {
         const [tArea, tIdx] = [toParts[0], parseInt(toParts[1])];
 
         if (tArea === 'bench') {
+            // 检查备战席是否已满（最多9格）
+            if (this.state.team.bench.length >= 9) {
+                // 放回原处
+                if (fromParts[0] === 'bench') {
+                    this.state.team.bench.splice(parseInt(fromParts[1]), 0, card);
+                } else {
+                    this.state.team[fromParts[0]][parseInt(fromParts[1])] = card;
+                }
+                return this.log('🎒 备战席已满');
+            }
             this.state.team.bench.push(card);
         } else {
             if (this.state.team[tArea][tIdx]) {
-                this.state.team.bench.push(this.state.team[tArea][tIdx]);
+                // 如果目标位置已有卡牌，将其移到备战席（如果备战席有空位）
+                const existingCard = this.state.team[tArea][tIdx];
+                if (this.state.team.bench.length < 9) {
+                    this.state.team.bench.push(existingCard);
+                } else {
+                    // 备战席满，无法交换，放回原处
+                    if (fromParts[0] === 'bench') {
+                        this.state.team.bench.splice(parseInt(fromParts[1]), 0, card);
+                    } else {
+                        this.state.team[fromParts[0]][parseInt(fromParts[1])] = card;
+                    }
+                    return this.log('🎒 备战席已满，无法交换');
+                }
             }
             this.state.team[tArea][tIdx] = card;
         }
@@ -137,7 +178,7 @@ const Game = {
 
     renderShop() {
         this._setHTML('shop-grid', this.state.shop.map(c => `
-            <div class="card shop-card" data-uid="${c.uid}">
+            <div class="card shop-card" data-uid="${c.uid}" data-cost="${c['费']}">
                 <div class="name">${c['角色']}</div>
                 <div class="cost">${c['费']}费 | ${c['羁绊']?.split('、')[0] || '无'}</div>
                 <div class="stars">⭐${c.stars}</div>
@@ -146,12 +187,16 @@ const Game = {
 
         document.querySelectorAll('.shop-card').forEach(el => {
             el.onclick = () => this.assignCard(`shop_${el.dataset.uid}`, 'bench');
-            el.ondragstart = (e) => e.dataTransfer.setData('text/plain', `shop_${el.dataset.uid}`);
+            el.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', `shop_${el.dataset.uid}`);
+                e.dataTransfer.setData('card-cost', el.dataset.cost);
+            };
             el.draggable = true;
         });
     },
 
     renderSlots() {
+        // 渲染前台和后台（固定位置）
         const createSlot = (area, idx) => {
             const c = this.state.team[area][idx];
             return c ? `
@@ -164,7 +209,21 @@ const Game = {
 
         this._setHTML('fl-slots', this.state.team.front.map((_, i) => createSlot('front', i)).join(''));
         this._setHTML('bl-slots', this.state.team.back.map((_, i) => createSlot('back', i)).join(''));
-        this._setHTML('bench-slots', this.state.team.bench.map((_, i) => createSlot('bench', i)).join(''));
+        
+        // 渲染备战席（始终显示9个格子）
+        let benchHTML = '';
+        for (let i = 0; i < 9; i++) {
+            const c = this.state.team.bench[i];
+            if (c) {
+                benchHTML += `<div class="card" data-slot="bench_${i}" draggable="true">
+                    <div class="name">${c['角色']}</div>
+                    <div class="cost">${c['费']}费</div>
+                </div>`;
+            } else {
+                benchHTML += `<div class="slot empty" data-slot="bench_${i}"></div>`;
+            }
+        }
+        this._setHTML('bench-slots', benchHTML);
 
         // 绑定拖拽与点击
         document.querySelectorAll('.card, .slot.empty').forEach(el => {
@@ -180,7 +239,17 @@ const Game = {
                     if (benchIdx !== -1) this.assignCard(`bench_${benchIdx}`, el.dataset.slot);
                 }
             };
+            // 为卡牌添加拖拽开始事件
+            if (el.classList.contains('card')) {
+                el.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', el.dataset.slot);
+                    e.dataTransfer.setData('card-cost', el.querySelector('.cost')?.textContent || '');
+                };
+            }
         });
+        
+        // 绑定出售区域的拖拽事件
+        this.bindSellZones();
     },
 
     renderAll() { this.renderShop(); this.renderSlots(); this.updateUI(); },
@@ -201,6 +270,83 @@ const Game = {
             box.scrollTop = box.scrollHeight;
         }
         console.log(`[货币战争] ${msg}`);
+    },
+
+    // 绑定出售区域的拖拽事件
+    bindSellZones() {
+        const sellLeft = this._el('sell-left');
+        const sellRight = this._el('sell-right');
+        
+        [sellLeft, sellRight].forEach(zone => {
+            if (!zone) return;
+            
+            zone.ondragover = (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over-sell');
+            };
+            
+            zone.ondragleave = () => {
+                zone.classList.remove('drag-over-sell');
+            };
+            
+            zone.ondrop = (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over-sell');
+                const data = e.dataTransfer.getData('text/plain');
+                const costText = e.dataTransfer.getData('card-cost');
+                
+                // 解析费用
+                const costMatch = costText.match(/(\d+)/);
+                const cost = costMatch ? parseInt(costMatch[1]) : 0;
+                
+                if (data && cost > 0) {
+                    this.sellCard(data, cost);
+                }
+            };
+        });
+        
+        // 添加拖拽进入时的显示效果
+        document.addEventListener('dragenter', (e) => {
+            const target = e.target;
+            const sellLeft = this._el('sell-left');
+            const sellRight = this._el('sell-right');
+            
+            if (target === sellLeft || target === sellRight) {
+                const costText = e.dataTransfer?.getData('card-cost');
+                const costMatch = costText?.match(/(\d+)/);
+                const cost = costMatch ? parseInt(costMatch[1]) : 0;
+                
+                if (cost > 0) {
+                    const priceVal = target.querySelector('.price-val');
+                    if (priceVal) priceVal.textContent = cost;
+                    target.classList.add('active');
+                }
+            }
+        });
+    },
+
+    // 出售卡牌
+    sellCard(slotRef, cost) {
+        const parts = slotRef.split('_');
+        const area = parts[0];
+        const idx = parseInt(parts[1]);
+        
+        let card = null;
+        if (area === 'bench') {
+            if (idx >= 0 && idx < this.state.team.bench.length) {
+                card = this.state.team.bench.splice(idx, 1)[0];
+            }
+        } else if (this.state.team[area] && idx >= 0 && idx < this.state.team[area].length) {
+            card = this.state.team[area].splice(idx, 1)[0];
+        }
+        
+        if (card) {
+            const sellPrice = cost; // 出售价格等于费用
+            this.state.gold += sellPrice;
+            this.calcStats();
+            this.renderAll();
+            this.log(`💰 出售 ${card['角色']}，获得 ${sellPrice}💰`);
+        }
     }
 };
 
