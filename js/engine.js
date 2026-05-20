@@ -9,6 +9,7 @@ const Game = {
 
     init() {
         console.log('🎮 货币战争引擎初始化...');
+        this.generateEnemy();
         this.refreshShop(true); // 开局免费刷新
         this.renderAll();
         this.bindEvents();
@@ -34,6 +35,16 @@ const Game = {
         }
         this.renderShop();
         this.updateUI();
+    },
+
+    generateEnemy() {
+        const enemies = ['虚卒·掠夺者', '冰刃猎手', '自动机兵·齿狼', '可可利亚', '史瓦罗'];
+        const diff = ['普通', '精英', '首领'];
+        const name = enemies[Math.floor(Math.random() * enemies.length)];
+        const d = diff[Math.floor(Math.random() * diff.length)];
+        this.enemyName = name;
+        this.enemyDiff = d;
+        this._setText('enemy-info', `👹 ${name} (${d})`);
     },
 
     assignCard(from, to) {
@@ -96,24 +107,31 @@ const Game = {
 
     updateUI() {
         this.calcStats();
-        this._setText('s-gold', `💰 ${this.state.gold}`);
-        this._setText('s-lvl', `⭐ Lv.${this.state.level}`);
-        this._setText('s-xp', `📖 ${this.state.xp}/${this.state.xpToNext}`);
-        this._setText('s-hp', `❤️ ${this.state.hp}/${this.state.maxHp}`);
-        this._setText('s-node', `📍 ${this.state.node}`);
+        this._setText('resources', `❤️ ${this.state.hp}/${this.state.maxHp} | 💰 ${this.state.gold}`);
+        this._setText('progress', `📍 ${this.state.node}`);
+        this._setText('lvl-num', this.state.level);
+        this._setText('xp-cur', this.state.xp);
+        this._setText('xp-req', this.state.xpToNext);
         
-        const canBattle = this.state.team.front.some(Boolean);
-        this._setAttr('btn-start-battle', 'disabled', canBattle ? '' : 'disabled');
+        const xpPercent = (this.state.xp / this.state.xpToNext) * 100;
+        const xpBar = this._el('xp-bar');
+        if(xpBar) xpBar.style.width = `${xpPercent}%`;
 
-        this._setHTML('bond-list', this.state.bondsActive.length ? 
-            this.state.bondsActive.map(b => `<span class="tag active">${b.name}(${b.count})</span>`).join('') : '<span class="tag">未激活</span>');
-        
+        const canBattle = this.state.team.front.some(Boolean);
+        const battleBtn = this._el('btn-start-battle');
+        if(battleBtn) battleBtn.disabled = !canBattle;
+
+        this._setHTML('bond-list', this.state.bondsActive.length ?
+            this.state.bondsActive.map(b => `<span class="tag active" style="background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;font-size:0.7rem;">${b.name}(${b.count})</span>`).join('') : '<span style="color:var(--text-dim);font-size:0.7rem;">未激活</span>');
+
         const s = this.state.stats.base;
         this._setHTML('stats-preview', `
-            <div class="stat-item"><span>前台强度</span><span>${s.frontInt}</span></div>
-            <div class="stat-item"><span>后台强度</span><span>${s.backInt}</span></div>
-            <div class="stat-item"><span>伤害增幅</span><span>${s.dmgAmp}%</span></div>
-            <div class="stat-item"><span>暴击率</span><span>${s.critRate}%</span></div>
+            <div style="font-size:0.7rem;color:var(--text-dim);">
+                <div>前台强度：<span style="color:var(--accent);">${s.frontInt}</span></div>
+                <div>后台强度：<span style="color:var(--accent);">${s.backInt}</span></div>
+                <div>伤害增幅：<span style="color:var(--gold);">${s.dmgAmp}%</span></div>
+                <div>暴击率：<span style="color:var(--gold);">${s.critRate}%</span></div>
+            </div>
         `);
     },
 
@@ -169,7 +187,7 @@ const Game = {
 
     bindEvents() {
         this._el('btn-refresh')?.addEventListener('click', () => this.refreshShop(false));
-        this._el('btn-levelup')?.addEventListener('click', () => this.levelUp());
+        this._el('btn-buy-xp')?.addEventListener('click', () => this.levelUp());
         this._el('btn-start-battle')?.addEventListener('click', () => {
             if (typeof Combat === 'object' && Combat.start) Combat.start();
             else this.log('⚠️ 战斗模块未加载');
@@ -192,3 +210,21 @@ if (document.readyState === 'loading') {
 } else {
     Game.init();
 }
+
+// Popup 弹窗模块
+const Popup = {
+    show(title, content) {
+        const overlay = document.getElementById("popup-overlay");
+        const titleEl = document.getElementById("popup-title");
+        const contentEl = document.getElementById("popup-content");
+        if(overlay && titleEl && contentEl) {
+            titleEl.textContent = title;
+            contentEl.innerHTML = "<p>" + content + "</p>";
+            overlay.classList.remove("hidden");
+        }
+    },
+    close() {
+        const overlay = document.getElementById("popup-overlay");
+        if(overlay) overlay.classList.add("hidden");
+    }
+};
