@@ -1,255 +1,218 @@
 const Game = {
     state: {
-        gold: 10, hp: 40, maxHp: 40, level: 3, xp: 0, xpReq: 4,
+        gold: 10, level: 3, xp: 0, xpToNext: 4, hp: 40, maxHp: 40,
         node: '1-1', face: 1, turn: 1,
-        shop: [], team: { front: [null, null, null], back: [null, null], bench: Array(9).fill(null) }
+        shop: [], team: { front: [null, null, null], back: [null, null], bench: [] },
+        inventory: [], strategies: [], bondsActive: [], stats: { base: {} }
     },
-    drag: { data: null, price: 0, sourceZone: null },
-    pool: [], // 缓存角色库
 
     init() {
-        this.pool = DATA.characters.map(c => ({...c, uid: null}));
+        this.refreshShop();
+        this.renderAll();
         this.setupDragAndDrop();
-        this.startNewNode();
-        this.bindUI();
+        this.log('🎮 货币战争 V4.2 模拟器启动。点击商店角色购买，拖拽调配阵容！');
     },
 
-    startNewNode() {
-        this.generateEnemy();
-        this.refreshShop(true); // 开局/新节点免费刷新
-        this.render();
-        Popup.show('🌍 新节点', `已抵达 ${this.state.node}。商店已免费刷新。`);
-    },
-
-    generateEnemy() {
-        const enemies = ['银鬃尉官', '自动机兵·甲虫', '金人勾魂使', '黑潮蚀刃', '虚卒掠夺者'];
-        const diff = Math.floor(Math.random() * 30) + 50 + (this.state.face * 10);
-        this.enemyName = enemies[Math.floor(Math.random() * enemies.length)];
-        this.enemyDiff = diff;
-    },
-
-    refreshShop(isFree = false) {
-        if (!isFree && this.state.gold < 2) return Popup.show('💰 提示', '金币不足(需2💰)！');
-        if (!isFree) this.state.gold -= 2;
-        
-        // 刷新逻辑：权重池
-        const costs = [1,1,1,1,1, 2,2,2,2, 3,3,3, 4, 5]; // 简化概率池
-        this.state.shop = [];
-        for(let i=0; i<5; i++) {
-            const c = this.pool[Math.floor(Math.random() * this.pool.length)];
-            const star = 1 + Math.floor(Math.random() * 3); // 模拟星级
-            this.state.shop.push({...c, uid: Date.now() + Math.random(), stars: star});
-        }
-        this.renderShop();
-        this.updateUI();
-    },
-
-    calculateSellPrice(card) {
-        // 公式：费用*星级 - 星级 + 1
-        return Math.max(0, (card['费'] * card.stars) - card.stars + 1);
-    },
-
-    // 核心拖拽逻辑
+    // 🔄 安全拖拽系统（使用 JSON 传输，事件委托绑定，带边界防护）
     setupDragAndDrop() {
+        // 拖拽开始
         document.addEventListener('dragstart', (e) => {
-            const card = e.target.closest('.card[data-uid]');
-            if (!card || card.classList.contains('empty-slot')) return;
+            const el = e.target.closest('.card[data-uid], .slot.empty[data-slot]');
+            if (!el || el.classList.contains('empty')) {
+                e.preventDefault();
+                return;
+            }
+            const isShop = el.dataset.source === 'shop';
+            const payload = isShop 
+                ? { type: 'shop', uid: el.dataset.uid }
+                : { type: el.dataset.slot.split('_')[0], idx: parseInt(el.dataset.slot.split('_')[1]) };
             
-            this.drag.data = { uid: card.dataset.uid, zone: card.dataset.zone, idx: parseInt(card.dataset.idx) };
-            this.drag.sourceZone = card.dataset.zone;
-            this.drag.price = this.calculateSellPrice(JSON.parse(card.dataset.json));
-            
-            document.querySelectorAll('.sell-zone').forEach(el => {
-                el.classList.add('active');
-                el.querySelector('.price-val').textContent = this.drag.price;
-            });
-            setTimeout(() => card.style.opacity = '0.4', 0);
+            e.dataTransfer.setData('application/json', JSON.stringify(payload));
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(() => el.style.opacity = '0.4', 0);
         });
 
         document.addEventListener('dragend', (e) => {
-            const card = e.target.closest('.card[data-uid]');
-            if(card) card.style.opacity = '1';
-            document.querySelectorAll('.sell-zone, .drop-zone').forEach(el => {
-                el.classList.remove('active', 'drag-over', 'drag-over-sell');
-            });
-            this.drag.data = null;
+            const el = e.target.closest('.card');
+            if (el) el.style.opacity = '1';
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         });
 
-        document.querySelectorAll('.drop-zone').forEach(zone => {
-            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-            zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-            zone.addEventListener('drop', e => {
-                e.preventDefault(); zone.classList.remove('drag-over');
-                if(!this.drag.data) return;
-                
-                const targetZone = zone.dataset.zone;
-                const dropIdx = [...zone.children].findIndex(child => {
-                    const rect = child.getBoundingClientRect();
-                    return e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-                });
-
-                this.moveCharacter(targetZone, dropIdx === -1 ? 0 : dropIdx);
-            });
+        // 拖拽悬停
+        document.addEventListener('dragover', (e) => {
+            const target = e.target.closest('.slot.empty');
+            if (target) {
+                e.preventDefault();
+                target.classList.add('drag-over');
+            }
         });
 
-        document.querySelectorAll('.sell-zone').forEach(zone => {
-            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over-sell'); });
-            zone.addEventListener('dragleave', () => zone.classList.remove('drag-over-sell'));
-            zone.addEventListener('drop', e => {
-                e.preventDefault(); zone.classList.remove('drag-over-sell');
-                this.sellCharacter();
-            });
+        document.addEventListener('dragleave', (e) => {
+            const target = e.target.closest('.slot.empty');
+            if (target) target.classList.remove('drag-over');
+        });
+
+        // 放置
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const target = e.target.closest('.slot.empty');
+            if (!target) return;
+            target.classList.remove('drag-over');
+
+            let payload;
+            try {
+                payload = JSON.parse(e.dataTransfer.getData('application/json'));
+            } catch { return; }
+
+            const toSlot = target.dataset.slot;
+            if (!toSlot) return;
+
+            this.moveCard(payload, toSlot);
         });
     },
 
-    moveCharacter(targetZone, targetIdx) {
-        const { uid, zone: srcZone, idx: srcIdx } = this.drag.data;
-        // 提取源数据
-        let charData = null;
-        if (srcZone === 'shop') charData = this.state.shop.splice(srcIdx, 1)[0];
-        else if (srcZone === 'frontline') charData = this.state.team.front[srcIdx];
-        else if (srcZone === 'backline') charData = this.state.team.back[srcIdx];
-        else if (srcZone === 'bench') charData = this.state.team.bench[srcIdx];
+    moveCard(payload, toSlot) {
+        const [tArea, tIdxStr] = toSlot.split('_');
+        const tIdx = parseInt(tIdxStr);
 
-        if (!charData) return;
-
-        // 处理目标位置
-        if (targetZone !== 'bench' && targetZone !== 'frontline' && targetZone !== 'backline') return;
-        
-        // 商店买的卡自动补入空位，已上场的卡交换/放入
-        if (targetZone === 'shop') { // 从阵容拖回商店不允许（简化）
-             this.restoreSrc(charData, srcZone, srcIdx);
-             return;
+        // 🛡️ 边界防护：确保目标数组存在
+        if (!this.state.team[tArea] || tIdx < 0 || tIdx >= this.state.team[tArea].length) {
+            console.warn('⚠️ 无效放置区域');
+            return;
         }
 
-        const targetArr = this.state.team[targetZone];
-        // 找到空位或替换
-        let placed = false;
-        if (targetArr[targetIdx] === null) {
-            targetArr[targetIdx] = charData;
-            placed = true;
-        } else if (srcZone !== 'shop') {
-            // 交换
-            const temp = targetArr[targetIdx];
-            targetArr[targetIdx] = charData;
-            this.restoreSrc(temp, srcZone, srcIdx);
-            placed = true;
+        let card = null;
+
+        // 1. 取出源卡牌
+        if (payload.type === 'shop') {
+            const sIdx = this.state.shop.findIndex(c => String(c.uid) === String(payload.uid));
+            if (sIdx === -1) return;
+            card = this.state.shop.splice(sIdx, 1)[0];
+            if (this.state.gold < card['费']) {
+                this.state.shop.push(card);
+                this.log('💰 金币不足');
+                return;
+            }
+            this.state.gold -= card['费'];
+        } else {
+            const { type, idx } = payload;
+            if (type === 'bench') {
+                card = this.state.team.bench.splice(idx, 1)[0];
+            } else if (this.state.team[type]) {
+                card = this.state.team[type][idx];
+                this.state.team[type][idx] = null;
+            }
+        }
+        if (!card) return;
+
+        // 2. 放入目标位置（若已有卡，挤到备战席）
+        if (tArea === 'bench') {
+            this.state.team.bench.push(card);
+        } else {
+            if (this.state.team[tArea][tIdx]) {
+                this.state.team.bench.push(this.state.team[tArea][tIdx]);
+            }
+            this.state.team[tArea][tIdx] = card;
         }
 
-        if (!placed) Popup.show('⚠️', '该位置已满，请先移动原角色或拖至空位。');
-        this.render();
+        this.calcStats();
+        this.renderAll();
+        this.log(`🔄 ${card['角色']} 已移至 ${tArea}`);
     },
 
-    restoreSrc(char, zone, idx) {
-        if (zone === 'shop') this.state.shop.splice(idx, 0, char);
-        else this.state.team[zone][idx] = char;
+    // 🏪 商店刷新
+    refreshShop() {
+        if (this.state.gold < 2) return this.log('💰 刷新需 2 金币');
+        this.state.gold -= 2;
+        const pool = DATA.characters.filter(c => c['费'] <= this.state.level + 1);
+        this.state.shop = Array.from({ length: 5 }, () => {
+            const char = pool[Math.floor(Math.random() * pool.length)];
+            return { ...char, uid: Date.now() + Math.random().toString(36).slice(2), stars: 1 };
+        });
+        this.renderAll();
     },
 
-    sellCharacter() {
-        const { uid, zone, idx } = this.drag.data;
-        let charData = null;
-        
-        if (zone === 'frontline') charData = this.state.team.front.splice(idx, 1)[0];
-        else if (zone === 'backline') charData = this.state.team.back.splice(idx, 1)[0];
-        else if (zone === 'bench') charData = this.state.team.bench.splice(idx, 1)[0];
-        else { Popup.show('⛔', '无法出售商店中的未购买角色！'); return; }
-
-        if (charData) {
-            const price = this.calculateSellPrice(charData);
-            this.state.gold += price;
-            this.render();
-            Popup.show('💸 出售成功', `卖出 ${charData['角色']} (★${charData.stars})，获得 ${price} 金币。`);
-        }
-    },
-
-    buyXP() {
-        const cost = this.state.level < 5 ? 4 : 5;
-        if (this.state.gold < cost) return Popup.show('💰', '升级金币不足！');
-        if (this.state.level >= 9) return Popup.show('🎉', '已达到最高等级 Lv.9！');
-
+    levelUp() {
+        const cost = this.state.level < 6 ? 4 : 5;
+        if (this.state.gold < cost) return this.log('💰 升级金币不足');
+        if (this.state.level >= 9) return this.log('🎉 已达最高等级');
         this.state.gold -= cost;
-        this.state.xp++;
-        if (this.state.xp >= this.state.xpReq) {
-            this.state.level++;
-            this.state.xp = 0;
-            this.state.xpReq = this.state.level >= 5 ? 5 : 4;
-            this.state.maxHp += 5; // 升级加血
-            this.state.hp += 5;
-            Popup.show('⬆️ 升级成功', `升至 Lv.${this.state.level}！生命上限+5，解锁更高费用角色概率。`);
-            this.refreshShop(true); // 升级刷新一次
-        }
-        this.updateUI();
+        this.state.level++;
+        this.log(`⬆️ 升至 Lv.${this.state.level}！商店概率提升`);
+        this.refreshShop(); // 升级免费刷新一次
     },
 
-    render() { this.renderShop(); this.renderTeam(); this.updateUI(); },
-
-    renderShop() {
-        const grid = document.getElementById('shop-grid');
-        grid.innerHTML = this.state.shop.map((c, i) => `
-            <div class="card" draggable="true" data-uid="${c.uid}" data-zone="shop" data-idx="${i}" data-json='${JSON.stringify(c)}'>
-                <div style="font-weight:bold">${c['角色']}</div>
-                <div class="cost">${c['费']}费 | ${c.stars}★</div>
-                <div style="font-size:0.7rem;color:#888">${c['羁绊']?.split('、')[0] || '无'}</div>
-            </div>`).join('') + `<div class="card empty-slot">空</div>`.repeat(Math.max(0, 5 - this.state.shop.length));
-            
-        // 点击购买
-        grid.querySelectorAll('.card[data-zone="shop"]').forEach(el => {
-            el.addEventListener('click', () => {
-                const idx = parseInt(el.dataset.idx);
-                const card = this.state.shop[idx];
-                if (!card || this.state.gold < card['费']) return Popup.show('💰', '金币不足');
-                this.state.gold -= card['费'];
-                this.state.shop.splice(idx, 1);
-                // 放入备战席空位
-                const benchIdx = this.state.team.bench.findIndex(x => x === null);
-                if (benchIdx !== -1) this.state.team.bench[benchIdx] = card;
-                else Popup.show('⚠️', '备战席已满！请出售或调整位置。');
-                this.render();
-            });
-        });
-    },
-
-    renderTeam() {
-        const renderZone = (id, zone, arr) => {
-            document.getElementById(id).innerHTML = arr.map((c, i) => c ? `
-                <div class="card" draggable="true" data-uid="${c.uid}" data-zone="${zone}" data-idx="${i}" data-json='${JSON.stringify(c)}'>
-                    <div style="font-weight:bold">${c['角色']}</div>
-                    <div class="cost">${c['费']}费 | ${c.stars}★</div>
-                </div>` : `<div class="card empty-slot" data-zone="${zone}" data-idx="${i}"></div>`
-            ).join('');
+    calcStats() {
+        const { front, back } = this.state.team;
+        const active = [...front, ...back].filter(Boolean);
+        const count = {};
+        active.forEach(c => (c['羁绊'] || '').split('、').forEach(b => b && (count[b] = (count[b] || 0) + 1)));
+        
+        this.state.bondsActive = Object.entries(count).filter(([_, v]) => v >= 2).map(([n, c]) => ({ name: n, count: c }));
+        this.state.stats.base = {
+            frontInt: active.reduce((s, c) => s + (c['前台强度'] || 0), 0),
+            backInt: active.reduce((s, c) => s + (c['后台强度'] || 0), 0),
+            speed: 100, dmgAmp: 10, critRate: 24, critDmg: 48
         };
-        renderZone('fl-slots', 'frontline', this.state.team.front);
-        renderZone('bl-slots', 'backline', this.state.team.back);
-        renderZone('bench-slots', 'bench', this.state.team.bench);
+    },
+
+    // 🎨 UI 渲染
+    renderShop() {
+        document.getElementById('shop-grid').innerHTML = this.state.shop.map(c => `
+            <div class="card" draggable="true" data-source="shop" data-uid="${c.uid}">
+                <div class="name">${c['角色']}</div>
+                <div class="cost">${c['费']}费 | ${c['羁绊']?.split('、')[0] || '无'}</div>
+                <div class="stars">⭐${c.stars}</div>
+            </div>`).join('');
+    },
+
+    renderSlots() {
+        const gen = (id, area) => {
+            document.getElementById(id).innerHTML = this.state.team[area].map((c, i) => c ? `
+                <div class="card" draggable="true" data-source="${area}" data-slot="${area}_${i}" style="opacity:0.4;cursor:not-allowed;">
+                    <div class="name">${c['角色']}</div><div class="cost">${c['费']}费</div>
+                </div>` : `<div class="slot empty" data-slot="${area}_${i}"></div>`).join('');
+        };
+        gen('fl-slots', 'front');
+        gen('bl-slots', 'back');
+        document.getElementById('bench-slots').innerHTML = this.state.team.bench.map((c, i) => c ? `
+            <div class="card" draggable="true" data-source="bench" data-slot="bench_${i}">
+                <div class="name">${c['角色']}</div><div class="cost">${c['费']}费</div>
+                <button onclick="event.stopPropagation(); Game.sellCard(${i})" style="margin-top:auto;font-size:0.7rem;">出售</button>
+            </div>` : `<div class="slot empty" data-slot="bench_${i}"></div>`).join('');
+    },
+
+    sellCard(benchIdx) {
+        const card = this.state.team.bench.splice(benchIdx, 1)[0];
+        if (!card) return;
+        this.state.gold += card['费'] * card.stars - card.stars + 1;
+        this.calcStats(); this.renderAll();
+        this.log(`💵 出售 ${card['角色']} (+${card['费'] * card.stars - card.stars + 1}💰)`);
     },
 
     updateUI() {
-        document.getElementById('enemy-info').textContent = `👹 ${this.enemyName} (难度: ${this.enemyDiff})`;
-        document.getElementById('progress').textContent = `📍 ${this.state.face}面-${this.state.node.split('-')[1]}`;
-        document.getElementById('resources').textContent = `❤️ ${this.state.hp}/${this.state.maxHp} | 💰 ${this.state.gold}`;
-        document.getElementById('lvl-num').textContent = this.state.level;
-        document.getElementById('xp-cur').textContent = this.state.xp;
-        document.getElementById('xp-req').textContent = this.state.xpReq;
-        document.getElementById('xp-bar').style.width = `${(this.state.xp / this.state.xpReq)*100}%`;
-        document.getElementById('btn-start-battle').disabled = this.state.team.front.every(x => !x);
+        document.getElementById('s-gold').textContent = `💰 ${this.state.gold}`;
+        document.getElementById('s-lvl').textContent = `⭐ Lv.${this.state.level}`;
+        document.getElementById('s-xp').textContent = `📖 ${this.state.xp}/${this.state.xpToNext}`;
+        document.getElementById('s-hp').textContent = `❤️ ${this.state.hp}/${this.state.maxHp}`;
+        document.getElementById('s-node').textContent = `📍 ${this.state.node}`;
+        document.getElementById('btn-start-battle').disabled = !this.state.team.front.some(Boolean);
+        document.getElementById('bond-list').innerHTML = this.state.bondsActive.length ? 
+            this.state.bondsActive.map(b => `<span class="tag active">${b.name}(${b.count})</span>`).join('') : '<span class="tag">未激活</span>';
+        const s = this.state.stats.base;
+        document.getElementById('stats-preview').innerHTML = `
+            <div class="stat-item"><span>前台强度</span><span>${s.frontInt}</span></div>
+            <div class="stat-item"><span>后台强度</span><span>${s.backInt}</span></div>
+            <div class="stat-item"><span>伤害增幅</span><span>${s.dmgAmp}%</span></div>
+            <div class="stat-item"><span>暴击率</span><span>${s.critRate}%</span></div>`;
     },
 
-    bindUI() {
-        document.getElementById('btn-refresh').onclick = () => this.refreshShop(false);
-        document.getElementById('btn-buy-xp').onclick = () => this.buyXP();
-        document.getElementById('btn-start-battle').onclick = () => Combat.start();
+    renderAll() { this.calcStats(); this.renderShop(); this.renderSlots(); this.updateUI(); },
+    log(msg) {
+        const box = document.getElementById('game-log');
+        box.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
     }
-};
-
-const Popup = {
-    show(title, msg) {
-        console.log(`[通知] ${title}: ${msg}`);
-        document.getElementById('popup-title').textContent = title;
-        document.getElementById('popup-content').textContent = msg;
-        document.getElementById('popup-overlay').classList.remove('hidden');
-        setTimeout(() => this.close(), 5000);
-    },
-    close() { document.getElementById('popup-overlay').classList.add('hidden'); }
 };
 
 window.onload = () => Game.init();
