@@ -79,8 +79,13 @@ const Game = {
             this.state.shop.splice(idx, 1);
         } else {
             const [area, idx] = [fromParts[0], parseInt(fromParts[1])];
-            if (area === 'bench') card = this.state.team.bench.splice(idx, 1)[0];
-            else card = this.state.team[area].splice(idx, 1)[0];
+            if (area === 'bench') {
+                card = this.state.team.bench.splice(idx, 1)[0];
+            } else {
+                // front 和 back 是固定长度数组，直接取出来并设为 null
+                card = this.state.team[area][idx];
+                this.state.team[area][idx] = null;
+            }
         }
         if (!card) return;
 
