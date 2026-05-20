@@ -3,36 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>崩坏：星穹铁道 | 货币战争 V4.2 图鉴</title>
+    <title>崩坏：星穹铁道 | 货币战争 V4.2 完整图鉴</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header>
-        <div class="logo">
+        <div class="header-left">
             <h1>🎲 货币战争 • 零和博弈</h1>
-            <span class="version">V4.2 赛季扩充版</span>
+            <span class="badge">V4.2 完整数据版</span>
         </div>
-        <div class="search-container">
-            <input type="text" id="globalSearch" placeholder="🔍 搜索角色、羁绊、装备、策略...">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 全局搜索：角色、羁绊、装备、策略、词缀..." autocomplete="off">
+            <button id="clearSearch" title="清空搜索">✖</button>
         </div>
     </header>
 
-    <nav id="tabNav">
-        <button class="tab-btn active" data-tab="bonds">🔗 羁绊</button>
-        <button class="tab-btn" data-tab="characters">👤 角色</button>
-        <button class="tab-btn" data-tab="equipment">🛡️ 装备</button>
-        <button class="tab-btn" data-tab="strategies">📊 投资策略</button>
-        <button class="tab-btn" data-tab="environments">🌍 投资环境</button>
-        <button class="tab-btn" data-tab="enemies">👹 敌人与词缀</button>
-        <button class="tab-btn" data-tab="multipliers">📐 伤害乘区</button>
+    <nav id="tabBar">
+        <button class="tab active" data-target="bonds">🔗 羁绊</button>
+        <button class="tab" data-target="characters">👤 角色技能</button>
+        <button class="tab" data-target="equipment">🛡️ 装备道具</button>
+        <button class="tab" data-target="strategies">📊 投资策略</button>
+        <button class="tab" data-target="environments">🌍 投资环境</button>
+        <button class="tab" data-target="affixes">👹 敌人与词缀</button>
+        <button class="tab" data-target="multipliers">📐 伤害乘区</button>
+        <button class="tab" data-target="panels">📊 货币面板</button>
+        <button class="tab" data-target="triggers">⚡ 触发效果</button>
+        <button class="tab" data-target="gameplays">🎮 玩法与永动机</button>
+        <button class="tab" data-target="bugs">🐛 Bug与修复</button>
+        <button class="tab" data-target="announcements">📢 官方公告</button>
     </nav>
 
-    <main id="contentArea">
-        <!-- 内容将由 JS 动态注入 -->
+    <main id="content">
+        <!-- 动态渲染区域 -->
     </main>
 
     <footer>
-        <p>📖 数据来源：玩家社区汇总 V4.2 | 仅供个人学习与配队参考 | <a href="https://wiki.biligame.com/sr/货币战争" target="_blank">访问BWiki</a></p>
+        <p>📖 数据来源：万有范德华力、绮罗、囤囤鼠 等社区整理 | 完整 V4.2 赛季扩充说明 | 仅供个人学习参考</p>
     </footer>
 
     <script src="js/data.js"></script>
