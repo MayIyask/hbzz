@@ -7,78 +7,62 @@
     <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-    <div id="game-container">
-        <header>
-            <div class="stat-row">
-                <span class="stat" id="s-gold">💰 0</span>
-                <span class="stat" id="s-lvl">⭐ Lv.3</span>
-                <span class="stat" id="s-xp">📖 0/4</span>
-                <span class="stat" id="s-hp">❤️ 40/40</span>
-                <span class="stat" id="s-node">📍 1-1</span>
-            </div>
-            <div class="actions">
-                <button id="btn-refresh">刷新(2💰)</button>
-                <button id="btn-levelup">升级(4💰)</button>
-                <button id="btn-start-battle" disabled>▶ 进入战斗</button>
-            </div>
+    <div id="app">
+        <!-- 1. 顶部状态条 -->
+        <header id="status-bar">
+            <span id="enemy-info">👹 等待刷新敌人...</span>
+            <span id="progress">📍 1-1 位面</span>
+            <span id="resources">❤️ 40/40 | 💰 10</span>
         </header>
 
-        <main id="main-view">
-            <!-- 商店区 -->
-            <section id="shop-panel">
-                <h3>🏪 人才招募</h3>
-                <div id="shop-grid" class="grid"></div>
-            </section>
+        <!-- 2. 商店区 -->
+        <section id="shop-section">
+            <div id="shop-grid" class="shop-grid"></div>
+            <button id="btn-refresh" class="circle-btn" title="刷新商店(2💰)">🔄</button>
+            <div id="shop-odds">商店概率：1费 45% | 2费 33% | 3费 20% | 4费 2% | 5费 0%</div>
+        </section>
 
-            <!-- 阵容区 -->
-            <section id="team-panel">
-                <h3>👥 备战席 & 上阵</h3>
-                <div class="team-layout">
-                    <div class="slot-group" id="frontline">
-                        <h4>前台</h4>
-                        <div class="slots" id="fl-slots"></div>
-                    </div>
-                    <div class="slot-group" id="backline">
-                        <h4>后台</h4>
-                        <div class="slots" id="bl-slots"></div>
-                    </div>
+        <!-- 3. 角色部署区 -->
+        <main id="deploy-section">
+            <div id="frontline-box" class="zone">
+                <h4>⚔️ 前台 (3格)</h4>
+                <div id="fl-slots" class="slots-3 drop-zone" data-zone="frontline"></div>
+            </div>
+            <div id="backline-box" class="zone">
+                <h4>🛡️ 后台 (2格)</h4>
+                <div id="bl-slots" class="slots-2 drop-zone" data-zone="backline"></div>
+            </div>
+            <div id="bottom-row">
+                <!-- 左侧：经验面板 -->
+                <div id="xp-panel">
+                    <div class="xp-level">Lv.<span id="lvl-num">3</span></div>
+                    <div class="xp-bar-bg"><div id="xp-bar"></div></div>
+                    <div class="xp-text"><span id="xp-cur">0</span> / <span id="xp-req">4</span> XP</div>
+                    <button id="btn-buy-xp" class="xp-btn">升级 (4💰)</button>
                 </div>
-                <div class="bench-group">
-                    <h4>备战席</h4>
-                    <div class="slots" id="bench-slots"></div>
+                <!-- 右侧：备战席 -->
+                <div id="bench-box">
+                    <h4>🎒 备战席 (9格)</h4>
+                    <div id="bench-slots" class="slots-9 drop-zone" data-zone="bench"></div>
                 </div>
-            </section>
-
-            <!-- 羁绊 & 面板 -->
-            <section id="info-panel">
-                <h3>🔗 羁绊状态</h3>
-                <div id="bond-list" class="tag-list">未激活</div>
-                <h3>📊 核心乘区</h3>
-                <div id="stats-preview" class="stats-grid"></div>
-            </section>
+            </div>
         </main>
 
-        <footer id="log-panel">
-            <h3>📜 战报/事件</h3>
-            <div id="game-log" class="log-box"></div>
-        </footer>
+        <!-- 4. 出售区域 (左右下角固定) -->
+        <div id="sell-left" class="sell-zone">出售: <span class="price-val">0</span>💰</div>
+        <div id="sell-right" class="sell-zone">出售: <span class="price-val">0</span>💰</div>
 
-        <!-- 策略选择弹窗 -->
-        <div id="strategy-modal" class="modal hidden">
-            <div class="modal-content">
-                <h3>📜 选择投资策略</h3>
-                <div id="strategy-choices" class="choices"></div>
+        <!-- 弹窗容器 -->
+        <div id="popup-overlay" class="hidden">
+            <div class="popup-box">
+                <h3 id="popup-title">系统通知</h3>
+                <div id="popup-content"></div>
+                <button onclick="Popup.close()">确认</button>
             </div>
         </div>
 
-        <!-- 战斗结算弹窗 -->
-        <div id="battle-modal" class="modal hidden">
-            <div class="modal-content">
-                <h3 id="battle-title">⚔️ 战斗中</h3>
-                <div id="battle-log" class="log-box battle-log"></div>
-                <button id="btn-close-battle" class="hidden">确认</button>
-            </div>
-        </div>
+        <!-- 战斗控制 -->
+        <button id="btn-start-battle" class="battle-btn">▶ 进入战斗</button>
     </div>
 
     <script src="js/data.js"></script>
