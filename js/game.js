@@ -541,28 +541,27 @@
   window.showResult = function(won, allies, enemies, bonuses) {
     window.showScreen('result-screen');
     var t = document.getElementById('result-title');
-    var r = document.getElementById('result-rewards');
-    var n = document.getElementById('next-btn-text');
+    var g = document.getElementById('result-gold');
     
     if (won) {
       window.state.streak++;
       var goldR = 3 + window.state.streak * 2 + (bonuses.goldPerBattle || 0);
       window.state.gold += goldR;
-      t.className = 'result-title result-win';
-      t.textContent = '完胜';
-      r.innerHTML = '<div style="display:flex;flex-direction:column;gap:.3rem;font-size:.72rem">' +
-        '<div><i class="fas fa-coins" style="color:var(--gold)"></i> +' + goldR + '💰</div>' +
-        '<div><i class="fas fa-fire" style="color:orange"></i> ' + window.state.streak + '连胜</div>' +
-        '<div style="color:var(--muted);font-size:.58rem">击杀' + window.battleState.killCount + '→晶矿已生成</div></div>';
+      t.textContent = '胜利!';
+      g.textContent = '+' + goldR;
     } else {
       window.state.streak = 0;
       var dmg = 3 + Math.floor(window.state.node / 3);
       window.state.hp = Math.max(0, window.state.hp - dmg);
-      t.className = 'result-title result-lose';
       t.textContent = '战败';
-      r.innerHTML = '<div style="font-size:.72rem"><i class="fas fa-heart-crack" style="color:var(--red)"></i> -' + dmg + ' 生命(剩' + window.state.hp + ')</div>';
+      g.textContent = '0';
     }
-    n.textContent = window.state.hp <= 0 ? '游戏结束' : (window.state.node >= window.state.maxNodes ? '通关结算' : '下一节点');
+  };
+  
+  // 返回大厅
+  window.returnToLobby = function() {
+    window.showScreen('game-screen');
+    window.renderAll();
   };
   
   // 下一节点
