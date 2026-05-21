@@ -217,86 +217,22 @@ canvas#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
   <div id="bond-modal-content"></div>
 </div></div>
 
+<script src="data/constants.js"></script>
+<script src="data/characters.js"></script>
+<script src="data/bonds.js"></script>
+<script src="data/equipment.js"></script>
+<script src="data/enemies.js"></script>
 <script>
-const ELEMS=['phys','fire','ice','elec','wind','quant','imag'];
-const ELEM_CSS={phys:'var(--phys)',fire:'var(--fire)',ice:'var(--ice)',elec:'var(--elec)',wind:'var(--wind)',quant:'var(--quant)',imag:'var(--imag)'};
-const CHAR_DATA=[
-  {id:'sanzhiqi',name:'三月七',cost:1,bonds:['列车同行','护盾'],atk:75,hp:850,spd:98,pos:'front',elem:'ice'},
-  {id:'danheng',name:'丹恒',cost:1,bonds:['列车同行'],atk:115,hp:520,spd:112,pos:'front',elem:'wind'},
-  {id:'herta',name:'黑塔',cost:1,bonds:['银河学者','群攻'],atk:95,hp:480,spd:96,pos:'back',elem:'ice'},
-  {id:'asta',name:'艾丝妲',cost:1,bonds:['银河学者','持续伤害'],atk:65,hp:520,spd:104,pos:'back',elem:'fire'},
-  {id:'sampo',name:'桑博',cost:1,bonds:['持续伤害','贝洛伯格','星间旅人'],atk:88,hp:560,spd:101,pos:'back',elem:'wind'},
-  {id:'qingque',name:'青雀',cost:1,bonds:['仙舟','战技点'],atk:108,hp:500,spd:99,pos:'front',elem:'quant'},
-  {id:'gallaher',name:'加拉赫',cost:1,bonds:['击破','治疗','盛会之星'],atk:80,hp:700,spd:95,pos:'back',elem:'fire'},
-  {id:'ruanmei',name:'阮·梅',cost:2,bonds:['击破','银河学者'],atk:58,hp:620,spd:100,pos:'back',elem:'ice'},
-  {id:'ajin',name:'砂金',cost:2,bonds:['公司','追击','护盾'],atk:78,hp:920,spd:94,pos:'back',elem:'imag'},
-  {id:'lingsha',name:'灵砂',cost:2,bonds:['击破','狼狩','治疗'],atk:82,hp:680,spd:100,pos:'back',elem:'fire'},
-  {id:'huahuo',name:'花火',cost:2,bonds:['战技点','量子同频','盛会之星'],atk:76,hp:540,spd:108,pos:'back',elem:'quant'},
-  {id:'yinzhi',name:'银枝',cost:2,bonds:['群攻','星间旅人','能量'],atk:138,hp:580,spd:91,pos:'front',elem:'phys'},
-  {id:'peila',name:'佩拉',cost:2,bonds:['贝洛伯格','减益'],atk:95,hp:530,spd:106,pos:'back',elem:'ice'},
-  {id:'jizi',name:'姬子',cost:3,bonds:['列车同行','击破'],atk:155,hp:680,spd:96,pos:'front',elem:'fire'},
-  {id:'wgr',name:'忘归人',cost:3,bonds:['击破','仙舟'],atk:142,hp:640,spd:100,pos:'back',elem:'fire'},
-  {id:'zhenli',name:'真理医生',cost:3,bonds:['追击','银河学者','星间旅人','减益'],atk:168,hp:590,spd:101,pos:'front',elem:'imag'},
-  {id:'yanqing',name:'彦卿',cost:3,bonds:['仙舟','减益','狼狩'],atk:175,hp:530,spd:116,pos:'front',elem:'ice'},
-  {id:'xier',name:'希儿',cost:3,bonds:['贝洛伯格','量子同频'],atk:188,hp:490,spd:120,pos:'front',elem:'quant'},
-  {id:'saber',name:'Saber',cost:3,bonds:['星间旅人','能量'],atk:172,hp:600,spd:105,pos:'front',elem:'wind'},
-  {id:'jiepade',name:'杰帕德',cost:4,bonds:['贝洛伯格','护盾'],atk:95,hp:1350,spd:84,pos:'front',elem:'ice'},
-  {id:'luosha',name:'罗刹',cost:4,bonds:['星间旅人','治疗'],atk:82,hp:860,spd:100,pos:'back',elem:'imag'},
-  {id:'fuxuan',name:'符玄',cost:4,bonds:['仙舟','治疗','量子同频'],atk:72,hp:1020,spd:94,pos:'back',elem:'quant'},
-  {id:'daheitai',name:'大黑塔',cost:4,bonds:['银河学者','群攻'],atk:210,hp:590,spd:91,pos:'back',elem:'ice'},
-  {id:'welter',name:'瓦尔特',cost:5,bonds:['列车同行','减益'],atk:208,hp:690,spd:96,pos:'front',elem:'imag'},
-  {id:'tuopa',name:'托帕',cost:5,bonds:['公司','追击'],atk:228,hp:640,spd:100,pos:'back',elem:'fire'},
-  {id:'jingyuan',name:'景元',cost:5,bonds:['仙舟','群攻'],atk:248,hp:690,spd:86,pos:'front',elem:'elec'},
-  {id:'yunli',name:'云璃',cost:5,bonds:['狼狩','能量'],atk:235,hp:810,spd:91,pos:'back',elem:'phys'},
-  {id:'heitiane',name:'黑天鹅',cost:5,bonds:['盛会之星','持续伤害'],atk:218,hp:640,spd:100,pos:'back',elem:'wind'},
-  {id:'liuying',name:'流萤',cost:5,bonds:['星核猎手','击破'],atk:258,hp:590,spd:110,pos:'front',elem:'fire'},
-  {id:'buluoniya',name:'布洛妮娅',cost:5,bonds:['贝洛伯格','燃血'],atk:185,hp:690,spd:106,pos:'back',elem:'wind'},
-];
-const BOND_DATA={
-  '列车同行':{icon:'fa-train',tiers:[2,4,6],bonus:[{dmgMul:.15},{dmgMul:.30},{dmgMul:.50}],desc:'全队伤害'},
-  '星核猎手':{icon:'fa-star',tiers:[2,3,4],bonus:[{dmgMul:.2,hpMul:.12},{dmgMul:.4,hpMul:.24},{dmgMul:.65,hpMul:.36}],desc:'伤害生命'},
-  '银河学者':{icon:'fa-graduation-cap',tiers:[2,4,6],bonus:[{atkMul:.2},{atkMul:.45},{atkMul:.8}],desc:'强度'},
-  '公司':{icon:'fa-briefcase',tiers:[2,3],bonus:[{atkMul:.25,goldPerBattle:1},{atkMul:.6,goldPerBattle:3}],desc:'后台金币'},
-  '贝洛伯格':{icon:'fa-city',tiers:[2,4,6],bonus:[{dmgMul:.18},{dmgMul:.36},{dmgMul:.6}],desc:'伤害'},
-  '仙舟':{icon:'fa-ship',tiers:[3,5,7],bonus:[{atkMul:.2,spdMul:.08},{atkMul:.4,spdMul:.16},{atkMul:.7,spdMul:.28}],desc:'强度速度'},
-  '狼狩':{icon:'fa-paw',tiers:[3,5,7],bonus:[{atkMul:.18},{atkMul:.38},{atkMul:.65}],desc:'强度'},
-  '击破':{icon:'fa-burst',tiers:[2,4,6],bonus:[{dmgMul:.2},{dmgMul:.45},{dmgMul:.75}],desc:'超击破'},
-  '追击':{icon:'fa-crosshairs',tiers:[3,5,7],bonus:[{dmgMul:.2},{dmgMul:.45},{dmgMul:.75}],desc:'追击'},
-  '群攻':{icon:'fa-explosion',tiers:[3,5,7],bonus:[{critRate:.12},{critRate:.24},{critRate:.4}],desc:'暴击'},
-  '持续伤害':{icon:'fa-skull-crossbones',tiers:[2,4,6],bonus:[{dotDmg:.08},{dotDmg:.18},{dotDmg:.35}],desc:'DoT'},
-  '治疗':{icon:'fa-heart-pulse',tiers:[2,4,6],bonus:[{healMul:.25},{healMul:.5},{healMul:.85}],desc:'治疗'},
-  '护盾':{icon:'fa-shield-halved',tiers:[2,4],bonus:[{dmgReduce:.12,dmgMul:.1},{dmgReduce:.25,dmgMul:.3}],desc:'减伤伤害'},
-  '减益':{icon:'fa-arrow-down',tiers:[2,4,6],bonus:[{dmgMul:.18},{dmgMul:.4},{dmgMul:.7}],desc:'减益增伤'},
-  '燃血':{icon:'fa-fire',tiers:[2,4,6],bonus:[{hpMul:.15,dmgMul:.1},{hpMul:.3,dmgMul:.25},{hpMul:.5,dmgMul:.45}],desc:'生命伤害'},
-  '量子同频':{icon:'fa-atom',tiers:[2,3,4],bonus:[{dmgMul:.15},{dmgMul:.3},{dmgMul:.5}],desc:'易伤'},
-  '星间旅人':{icon:'fa-globe',tiers:[2,4,6],bonus:[{dmgMul:.12},{dmgMul:.28},{dmgMul:.5}],desc:'全队增益'},
-  '战技点':{icon:'fa-bolt',tiers:[2,4,6],bonus:[{dmgMul:.12,spdMul:.1},{dmgMul:.24,spdMul:.2},{dmgMul:.4,spdMul:.35}],desc:'伤害速度'},
-  '盛会之星':{icon:'fa-masks-theater',tiers:[2,3,4],bonus:[{dmgMul:.15},{dmgMul:.3},{dmgMul:.5}],desc:'巨星'},
-  '能量':{icon:'fa-charging-station',tiers:[3,5,7],bonus:[{dmgMul:.15},{dmgMul:.35},{dmgMul:.6}],desc:'终结技'},
-};
-const ENEMY_NAMES=['异星兽','虚数卫兵','裂界造物','星核猎影','银鬃铁卫','反物质军团','深渊凝视者','记忆域迷因'];
-const CC=['','var(--cost1)','var(--cost2)','var(--cost3)','var(--cost4)','var(--cost5)'];
-const CN=['','银','绿','蓝','紫','金'];
-const EQUIP_DB=[
-  {id:'sword1',name:'简易之剑',type:'weapon',tier:1,stats:{atk:15},color:'var(--red)'},
-  {id:'shield1',name:'简易之盾',type:'shield',tier:1,stats:{hp:200},color:'var(--ice)'},
-  {id:'ring1',name:'简易之戒',type:'ring',tier:1,stats:{dmgMul:.05},color:'var(--cost4)'},
-  {id:'boots1',name:'简易之靴',type:'boots',tier:1,stats:{spd:8},color:'var(--green)'},
-  {id:'sword2',name:'精炼之剑',type:'weapon',tier:2,stats:{atk:40,dmgMul:.05},from:'sword1',color:'var(--red)'},
-  {id:'shield2',name:'精炼之盾',type:'shield',tier:2,stats:{hp:500,dmgReduce:.05},from:'shield1',color:'var(--ice)'},
-  {id:'ring2',name:'精炼之戒',type:'ring',tier:2,stats:{dmgMul:.12,critRate:.05},from:'ring1',color:'var(--cost4)'},
-  {id:'boots2',name:'精炼之靴',type:'boots',tier:2,stats:{spd:20,spdMul:.05},from:'boots1',color:'var(--green)'},
-  {id:'sword3',name:'星徽之剑',type:'weapon',tier:3,stats:{atk:80,dmgMul:.12},from:'sword2',color:'var(--gold)'},
-  {id:'shield3',name:'星徽之盾',type:'shield',tier:3,stats:{hp:1000,dmgReduce:.12},from:'shield2',color:'var(--gold)'},
-  {id:'ring3',name:'星徽之戒',type:'ring',tier:3,stats:{dmgMul:.2,critRate:.1},from:'ring2',color:'var(--gold)'},
-  {id:'boots3',name:'星徽之靴',type:'boots',tier:3,stats:{spd:35,spdMul:.1},from:'boots2',color:'var(--gold)'},
-  {id:'recruit5',name:'五星招募卡',type:'special',tier:0,stats:{},color:'var(--gold)'},
-];
+// 常量别名（兼容旧代码）
+const CC = window.GAME_CONST.COST_COLORS;
+const CN = window.GAME_CONST.COST_NAMES;
+const ELEMS = window.GAME_CONST.ELEMS;
+const ELEM_CSS = window.GAME_CONST.ELEM_CSS;
 
 let state={},uidC=0,battleRunning=false,dragInfo=null,battleState={};
 function makeUID(){return++uidC}
-function getCharBase(id){return CHAR_DATA.find(c=>c.id===id)}
-function getEquipBase(id){return EQUIP_DB.find(e=>e.id===id)}
+function getCharBase(id){return window.CHAR_DATA.find(c=>c.id===id)}
+function getEquipBase(id){return window.EQUIP_DB.find(e=>e.id===id)}
 function getSellPrice(c){const b=getCharBase(c.id);return b.cost*c.star-c.star+1}
 // 升级所需经验 = 等级 * 4
 function expToNext(lv){return lv<10?lv*4:999}
@@ -313,7 +249,7 @@ function initState(){
 /* 羁绊 - 只算场上的 */
 function calcBonds(){
   const ct={};state.field.filter(Boolean).forEach(c=>{getCharBase(c.id).bonds.forEach(b=>{ct[b]=(ct[b]||0)+1})});
-  const ac={};Object.entries(ct).forEach(([b,n])=>{const d=BOND_DATA[b];if(!d)return;let t=-1;for(let i=d.tiers.length-1;i>=0;i--)if(n>=d.tiers[i]){t=i;break}ac[b]={count:n,tier:t,data:d}});return ac;
+  const ac={};Object.entries(ct).forEach(([b,n])=>{const d=window.BOND_DATA[b];if(!d)return;let t=-1;for(let i=d.tiers.length-1;i>=0;i--)if(n>=d.tiers[i]){t=i;break}ac[b]={count:n,tier:t,data:d}});return ac;
 }
 function sumBonuses(bonds){
   const s={dmgMul:0,atkMul:0,hpMul:0,spdMul:0,critRate:0,dmgReduce:0,dotDmg:0,healMul:0,goldPerBattle:0};
@@ -342,7 +278,7 @@ function getShopWeights(){
 function genShop(){
   const sh=[];const ws=getShopWeights();
   for(let i=0;i<5;i++){
-    const pool=CHAR_DATA;const weights=pool.map(c=>ws[c.cost-1]||1);
+    const pool=window.CHAR_DATA;const weights=pool.map(c=>ws[c.cost-1]||1);
     const t=weights.reduce((a,b)=>a+b,0);let r=Math.random()*t,p=pool[0];
     for(let j=0;j<pool.length;j++){r-=weights[j];if(r<=0){p=pool[j];break}}
     sh.push({id:p.id,sold:false});
@@ -396,7 +332,7 @@ function addEquip(id){state.equips.push(id);renderAll()}
 function equipToChar(char,eid){if(!char.equips)char.equips=[];if(char.equips.length>=3){showToast('装备栏满','error');return}char.equips.push(eid);const i=state.equips.indexOf(eid);if(i>=0)state.equips.splice(i,1);renderAll()}
 function tryMergeEquip(eid1,eid2){
   const e1=getEquipBase(eid1),e2=getEquipBase(eid2);if(!e1||!e2||e1.id!==e2.id)return false;
-  const adv=EQUIP_DB.find(e=>e.from===e1.id);if(!adv)return false;
+  const adv=window.EQUIP_DB.find(e=>e.from===e1.id);if(!adv)return false;
   let r=0;state.equips=state.equips.filter(e=>{if(e===eid1&&r<1){r++;return false}return true});
   r=0;state.equips=state.equips.filter(e=>{if(e===eid2&&r<1){r++;return false}return true});
   state.equips.push(adv.id);showToast(`合成 ${adv.name}!`,'success');renderAll();return true;
@@ -408,9 +344,9 @@ function openCrystal(cry){
   if(cry.opened)return;cry.opened=true;let rw='';
   const t=cry.type;
   if(t==='silver'){state.gold+=1;rw='+1💰'}
-  else if(t==='blue'){if(Math.random()<.5){const cs=CHAR_DATA.filter(c=>c.cost===2||c.cost===3);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:1,equips:[]});rw=c.name}else{const se=['sword1','shield1','ring1','boots1'];const eid=se[Math.floor(Math.random()*se.length)];addEquip(eid);rw=getEquipBase(eid).name}}
-  else if(t==='gold'){if(Math.random()<.5){const cs=CHAR_DATA.filter(c=>c.cost===3||c.cost===4);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:2,equips:[]});rw=c.name+'★2'}else{addEquip('recruit5');rw='五星招募卡'}}
-  else{if(Math.random()<.5){const cs=CHAR_DATA.filter(c=>c.cost===5);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:2,equips:[]});rw=c.name+'★2'}else{const se=['sword3','shield3','ring3','boots3'];addEquip(se[Math.floor(Math.random()*se.length)]);rw='星徽装备'}}
+  else if(t==='blue'){if(Math.random()<.5){const cs=window.CHAR_DATA.filter(c=>c.cost===2||c.cost===3);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:1,equips:[]});rw=c.name}else{const se=['sword1','shield1','ring1','boots1'];const eid=se[Math.floor(Math.random()*se.length)];addEquip(eid);rw=getEquipBase(eid).name}}
+  else if(t==='gold'){if(Math.random()<.5){const cs=window.CHAR_DATA.filter(c=>c.cost===3||c.cost===4);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:2,equips:[]});rw=c.name+'★2'}else{addEquip('recruit5');rw='五星招募卡'}}
+  else{if(Math.random()<.5){const cs=window.CHAR_DATA.filter(c=>c.cost===5);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:2,equips:[]});rw=c.name+'★2'}else{const se=['sword3','shield3','ring3','boots3'];addEquip(se[Math.floor(Math.random()*se.length)]);rw='星徽装备'}}
   const area=document.getElementById('crystal-area');const rd=document.createElement('div');rd.className='crystal-reward';rd.textContent=rw;rd.style.left=cry.x+'px';rd.style.top=cry.y+'px';area.appendChild(rd);setTimeout(()=>rd.remove(),900);renderAll();
 }
 
@@ -540,10 +476,10 @@ function calcStats(char,bonuses){
 }
 function genEnemyTeam(){
   const n=Math.min(3+Math.floor(state.node/3),8),en=[];const ns=0.6+state.node*0.25;const isR=state.node<=2;
-  for(let i=0;i<n;i++){const base=CHAR_DATA[Math.floor(Math.random()*CHAR_DATA.length)];const star=Math.min(3,1+Math.floor(state.node/6)),sm=star===1?1:star===2?1.6:2.5;
+  for(let i=0;i<n;i++){const base=window.CHAR_DATA[Math.floor(Math.random()*window.CHAR_DATA.length)];const star=Math.min(3,1+Math.floor(state.node/6)),sm=star===1?1:star===2?1.6:2.5;
     const weaks=[];const pool=[...ELEMS];for(let j=0;j<3;j++){const idx=Math.floor(Math.random()*pool.length);weaks.push(pool.splice(idx,1)[0])}
     const tough=30+state.node*5;let hp=Math.round(base.hp*sm*ns*(0.85+Math.random()*0.3));if(isR)hp=Math.round(hp*0.01);
-    en.push({uid:makeUID(),id:base.id,name:ENEMY_NAMES[Math.floor(Math.random()*ENEMY_NAMES.length)],atk:Math.round(base.atk*sm*ns*(0.85+Math.random()*0.3)),hp,maxHp:hp,spd:base.spd,dmgMul:0.1*Math.floor(state.node/4),critRate:.05,dmgReduce:0,dotDmg:0,healMul:0,star,isEnemy:true,bonds:[],cost:base.cost,pos:base.pos,elem:base.elem||ELEMS[Math.floor(Math.random()*ELEMS.length)],weaknesses:weaks,toughness:tough,maxToughness:tough,dots:0,broken:false});
+    en.push({uid:makeUID(),id:base.id,name:window.ENEMY_NAMES[Math.floor(Math.random()*window.ENEMY_NAMES.length)],atk:Math.round(base.atk*sm*ns*(0.85+Math.random()*0.3)),hp,maxHp:hp,spd:base.spd,dmgMul:0.1*Math.floor(state.node/4),critRate:.05,dmgReduce:0,dotDmg:0,healMul:0,star,isEnemy:true,bonds:[],cost:base.cost,pos:base.pos,elem:base.elem||ELEMS[Math.floor(Math.random()*ELEMS.length)],weaknesses:weaks,toughness:tough,maxToughness:tough,dots:0,broken:false});
   }return en;
 }
 
@@ -655,10 +591,10 @@ function nextNode(){
   if(state.hp<=0||state.node>=state.maxNodes){initState();state.shop=genShop();showScreen('game-screen');renderAll();showToast(state.hp<=0?'游戏结束':'恭喜通关!','info');return}
   state.node++;state.freeRefresh=true;state.shop=genShop();state.phase='prep';showScreen('game-screen');renderAll();
 }
-function showBondInfo(){const m=document.getElementById('bond-modal'),c=document.getElementById('bond-modal-content');let h='';Object.entries(BOND_DATA).forEach(([name,data])=>{h+=`<div style="margin-bottom:.4rem;padding:.3rem;background:var(--card);border-radius:5px;border:1px solid var(--border);font-size:.7rem"><div style="font-weight:700;color:var(--gold)"><i class="fas ${data.icon}"></i> ${name}</div><div style="color:var(--muted);font-size:.6rem">${data.desc}</div><div style="font-size:.55rem;margin-top:.1rem">${data.tiers.map((t,i)=>`<span style="color:var(--cost${Math.min(i+2,5)})">${t}人:${Object.entries(data.bonus[i]).map(([k,v])=>k+'+'+Math.round(v*100)+'%').join(',')}</span>`).join(' | ')}</div></div>`});c.innerHTML=h;m.classList.add('active')}
+function showBondInfo(){const m=document.getElementById('bond-modal'),c=document.getElementById('bond-modal-content');let h='';Object.entries(window.BOND_DATA).forEach(([name,data])=>{h+=`<div style="margin-bottom:.4rem;padding:.3rem;background:var(--card);border-radius:5px;border:1px solid var(--border);font-size:.7rem"><div style="font-weight:700;color:var(--gold)"><i class="fas ${data.icon}"></i> ${name}</div><div style="color:var(--muted);font-size:.6rem">${data.desc}</div><div style="font-size:.55rem;margin-top:.1rem">${data.tiers.map((t,i)=>`<span style="color:var(--cost${Math.min(i+2,5)})">${t}人:${Object.entries(data.bonus[i]).map(([k,v])=>k+'+'+Math.round(v*100)+'%').join(',')}</span>`).join(' | ')}</div></div>`});c.innerHTML=h;m.classList.add('active')}
 function showToast(msg,type){const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2000)}
 
-document.addEventListener('click',e=>{const es=e.target.closest('.equip-slot');if(!es)return;const idx=parseInt(es.dataset.equipIdx);if(isNaN(idx))return;const eid=state.equips[idx];if(!eid)return;if(eid==='recruit5'){state.equips.splice(idx,1);const pool=CHAR_DATA.filter(c=>c.cost===5);const ch=pool[Math.floor(Math.random()*pool.length)];if(state.bench.length<12){state.bench.push({uid:makeUID(),id:ch.id,star:1,equips:[]});showToast(`招募 ${ch.name}!`,'success')}else showToast('备战席满','error');renderAll()}});
+document.addEventListener('click',e=>{const es=e.target.closest('.equip-slot');if(!es)return;const idx=parseInt(es.dataset.equipIdx);if(isNaN(idx))return;const eid=state.equips[idx];if(!eid)return;if(eid==='recruit5'){state.equips.splice(idx,1);const pool=window.CHAR_DATA.filter(c=>c.cost===5);const ch=pool[Math.floor(Math.random()*pool.length)];if(state.bench.length<12){state.bench.push({uid:makeUID(),id:ch.id,star:1,equips:[]});showToast(`招募 ${ch.name}!`,'success')}else showToast('备战席满','error');renderAll()}});
 
 function initParticles(){const cv=document.getElementById('particles'),ctx=cv.getContext('2d');let W,H;const ps=[];function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight}resize();addEventListener('resize',resize);for(let i=0;i<35;i++)ps.push({x:Math.random()*2e3,y:Math.random()*1200,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.2,vy:-Math.random()*.3-.05,a:Math.random()*.3+.05});(function draw(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.1,p.r),0,Math.PI*2);ctx.fillStyle=`rgba(240,180,41,${p.a})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.y<-10){p.y=H+10;p.x=Math.random()*W}if(p.x<-10)p.x=W+10;if(p.x>W+10)p.x=-10});requestAnimationFrame(draw)})()}
 function startGame(){initState();state.shop=genShop();showScreen('game-screen');renderAll();showToast('购买角色，升级人口，搭配羁绊','info')}
