@@ -13,25 +13,87 @@
   <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAAAAAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA">
 </head>
 <body>
-  <!-- ... HTML结构保持不变 ... -->
-  
   <!-- 粒子背景 canvas -->
   <canvas id="particles" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;"></canvas>
-  
+
+  <!-- ===== 标题屏幕 ===== -->
+  <div id="title-screen" class="screen active">
+    <div class="title-main">货币战争</div>
+    <div class="title-sub">零和博弈</div>
+    <button class="start-btn" onclick="window.startGame()">开始游戏</button>
+  </div>
+
+  <!-- ===== 游戏界面 ===== -->
+  <div id="game-screen" class="screen">
+    <div class="top-bar">
+      <div class="stat-item"><i class="fas fa-user"></i> Lv<span id="level-display">1</span></div>
+      <div class="stat-item"><i class="fas fa-coins gold-text"></i> <span id="gold-display">0</span></div>
+      <button class="btn-small" onclick="window.refreshShop()"><i class="fas fa-sync"></i> 刷新 (2)</button>
+      <button class="btn-small" onclick="window.buyExp()"><i class="fas fa-arrow-up"></i> 升级人口 (4)</button>
+    </div>
+
+    <div class="shop-section">
+      <div class="section-title">商店</div>
+      <div id="shop-container" class="card-row"></div>
+    </div>
+
+    <div class="field-section">
+      <div class="section-title">战场 (最多 5 人)</div>
+      <div id="field-container" class="card-row drop-zone"></div>
+    </div>
+
+    <div class="bench-section">
+      <div class="section-title">替补席</div>
+      <div id="bench-container" class="card-row drop-zone"></div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-large" onclick="window.startBattle()"><i class="fas fa-skull"></i> 开始战斗</button>
+    </div>
+  </div>
+
+  <!-- ===== 战斗界面 ===== -->
+  <div id="battle-screen" class="screen">
+    <div class="battle-header">
+      <div class="battle-info">
+        <span>我方：<span id="battle-player-hp">100</span> HP</span>
+        <span>敌方：<span id="battle-enemy-hp">100</span> HP</span>
+      </div>
+      <div class="battle-round">第 <span id="battle-round">1</span> 回合</div>
+    </div>
+    <div class="battle-field">
+      <div class="battle-side player-side">
+        <div id="battle-player-field" class="battle-row"></div>
+      </div>
+      <div class="battle-divider">VS</div>
+      <div class="battle-side enemy-side">
+        <div id="battle-enemy-field" class="battle-row"></div>
+      </div>
+    </div>
+    <div id="battle-log" class="battle-log"></div>
+  </div>
+
+  <!-- ===== 结果界面 ===== -->
+  <div id="result-screen" class="screen">
+    <div class="result-title" id="result-title">胜利!</div>
+    <div class="result-reward">
+      奖励：<span class="gold-text" id="result-gold">+10</span> 金币
+    </div>
+    <button class="btn-large" onclick="window.returnToLobby()">返回</button>
+  </div>
+
   <!-- ===== 数据模块 (必须先加载) ===== -->
   <script src="data/constants.js"></script>
   <script src="data/characters.js"></script>
   <script src="data/bonds.js"></script>
   <script src="data/equipment.js"></script>
   <script src="data/enemies.js"></script>
-  
+
   <!-- ===== 游戏逻辑模块 ===== -->
   <script src="js/utils.js"></script>
   <script src="js/drag.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/battle.js"></script>
   <script src="js/game.js"></script>
-  
-  <!-- 粒子背景 (可选) -->
 </body>
 </html>
