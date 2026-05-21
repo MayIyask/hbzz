@@ -724,3 +724,247 @@ canvas#particles {
   border-radius: 50%;
   background: var(--card);
   border: 2px solid var(--border);
+  transition: all .3s;
+}
+
+.sp-dot.filled {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.battle-team-row {
+  display: flex;
+  gap: .15rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.battle-char {
+  position: relative;
+  padding: .2rem .3rem .2rem 1.5rem;
+  background: var(--card);
+  border-radius: 5px;
+  border: 2px solid var(--border);
+  min-width: 130px;
+  transition: all .3s;
+  display: flex;
+  flex-direction: column;
+  gap: .08rem;
+}
+
+.battle-char.dead { opacity: .2; }
+.battle-char.acting {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(240,180,41,.4);
+}
+.battle-char.enemy.acting {
+  border-color: var(--red);
+  box-shadow: 0 0 8px rgba(239,68,68,.4);
+}
+.battle-char.back-row { border-left: 3px solid var(--cost3); }
+
+.char-avatar {
+  position: absolute;
+  left: .1rem;
+  top: .1rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .5rem;
+  font-weight: 900;
+  color: #fff;
+  border: 2px solid;
+}
+
+.char-top {
+  display: flex;
+  align-items: center;
+  gap: .15rem;
+  font-size: .5rem;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+
+.bar-wrap {
+  position: relative;
+  height: 4px;
+  background: #1a1a2e;
+  border-radius: 2px;
+  overflow: visible;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .4s;
+}
+
+.hp-fill { background: var(--green); }
+.tough-fill { background: rgba(255,255,255,.8); }
+
+.shield-bar {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  height: 2px;
+  background: rgba(255,255,255,.9);
+  border-radius: 1px;
+  transition: width .4s;
+}
+
+.energy-ring {
+  position: absolute;
+  left: .05rem;
+  top: .05rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.battle-vs {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(240,180,41,.5);
+  text-align: center;
+  padding: .1rem 0;
+}
+
+.battle-log {
+  max-height: 65px;
+  overflow-y: auto;
+  padding: .15rem;
+  background: var(--bg2);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-size: .48rem;
+  color: var(--muted);
+  width: 100%;
+}
+
+.log-dmg { color: var(--red); }
+.log-heal { color: var(--green); }
+.log-bond { color: var(--gold); }
+.log-sp { color: var(--cost5); }
+.log-shield { color: #eee; }
+.log-dot { color: var(--cost4); }
+.log-break { color: var(--cost3); }
+
+/* ===== 特效 ===== */
+.fx-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 400;
+}
+
+.fx-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  pointer-events: none;
+  animation: fxFl .4s ease forwards;
+}
+
+@keyframes fxFl {
+  0% { opacity: .6; }
+  100% { opacity: 0; }
+}
+
+.fx-flash-red { background: rgba(239,68,68,.3); }
+.fx-flash-green { background: rgba(34,197,94,.3); }
+.fx-flash-white { background: rgba(255,255,255,.3); }
+.fx-flash-gold { background: rgba(240,180,41,.3); }
+.fx-flash-blue { background: rgba(96,165,250,.3); }
+.fx-flash-purple { background: rgba(192,132,252,.3); }
+
+/* ===== 结果界面 ===== */
+#result-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  text-align: center;
+  z-index: 1;
+  position: relative;
+}
+
+.result-title {
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.result-win {
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(240,180,41,.5);
+}
+
+.result-lose {
+  color: var(--red);
+  text-shadow: 0 0 20px rgba(239,68,68,.5);
+}
+
+.result-rewards {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .7rem;
+  min-width: 170px;
+}
+
+/* ===== Toast提示 ===== */
+.toast {
+  position: fixed;
+  top: .6rem;
+  right: .6rem;
+  padding: .4rem .7rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: .72rem;
+  z-index: 999;
+  animation: sI .3s ease;
+  pointer-events: none;
+}
+
+.toast-success { background: rgba(34,197,94,.9); color: #fff; }
+.toast-error { background: rgba(239,68,68,.9); color: #fff; }
+.toast-info { background: rgba(240,180,41,.92); color: #1a1a2e; }
+
+@keyframes sI {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ===== 模态框 ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .7rem;
+  max-width: 320px;
+  width: 90%;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
