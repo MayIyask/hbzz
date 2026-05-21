@@ -341,15 +341,6 @@ function moveChar(sT,sI,dT,dI){
     // 检查人口：从后台拖到前排不消耗人口（只是换位置）
     const isMovingFromField=sT==='field';
     if(!isMovingFromField&&countFieldChars()>=maxPop()){showToast(`人口已满 (${maxPop()})，请先升级`,'error');return}
-    // 检查前排至少一名角色：仅当场上的前排角色将要被移走且没有其他前排时不允许
-    const targetIsFront=dI<4;
-    const sourceIsFront=sT==='field'&&sI<4;
-    // 只有当从前排移走角色且移动后前排会变为空时才阻止
-    if(sourceIsFront&&dT==='field'){
-      const frontCount=countFrontRow();
-      // 如果前排只有这一个角色，且要移动到后排或备战席，则不允许
-      if(frontCount===1&&(dT!=='field'||dI>=4)){showToast('前排至少需要一名角色','error');return}
-    }
   }
   if(sT==='field')state.field[sI]=dC;else{if(dC)state.bench[sI]=dC;else state.bench.splice(sI,1)}
   if(dT==='field')state.field[dI]=sC;else{if(!dC)state.bench.push(sC);else state.bench[dI]=sC}
@@ -526,6 +517,9 @@ function flashTarget(uid,cls){const el=document.querySelector(`.battle-char[data
 async function startBattle(){
   if(battleRunning)return;if(state.bench.length>9){showToast('备战席溢出','error');return}
   const fc=state.field.filter(Boolean);if(!fc.length){showToast('请先上场角色','error');return}
+  // 检查前排至少有一名角色
+  const frontRow=state.field.slice(0,4).filter(Boolean);
+  if(frontRow.length===0){showToast('前排至少需要一名角色才能出战','error');return}
   battleRunning=true;const bonds=calcBonds(),bonuses=sumBonuses(bonds);
   const allies=state.field.map((c,i)=>{if(!c)return null;const s=calcStats(c,bonuses);s.fieldIdx=i;s.isEnemy=false;return s}).filter(Boolean);
   const enemies=genEnemyTeam();
