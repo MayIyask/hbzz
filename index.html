@@ -332,6 +332,63 @@ function hasDupOnField(charId,exIdx){const base=getCharBase(charId);for(let i=0;
 function countFieldChars(){return state.field.filter(Boolean).length}
 function countFrontRow(){return state.field.slice(0,4).filter(Boolean).length}
 
+// 尝试自动合成角色：当前台、后台、备战席上一共有三个相同星级的同名角色时自动合成
+function tryAutoMergeChars(){
+  // 收集所有角色（场上 + 备战席）
+  const allChars = [...state.field.filter(Boolean), ...state.bench];
+  if (allChars.length < 3) return;
+  
+  // 按角色 ID 和星级分组
+  const groups = {};
+  for (const c of allChars) {
+    const key = `${c.id}_star${c.star}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(c);
+  }
+  
+  // 检查是否有任意一组达到 3 个
+  for (const [key, chars] of Object.entries(groups)) {
+    if (chars.length >= 3) {
+      const base = getCharBase(chars[0].id);
+      const newStar = chars[0].star + 1;
+      
+      // 保留一个角色并提升星级
+      const keep = chars[0];
+      keep.star = newStar;
+      
+      // 移除另外两个角色
+      let removed = 0;
+      for (let i = 1; i < chars.length && removed < 2; i++) {
+        const rm = chars[i];
+        // 从场上移除
+        let fi = state.field.indexOf(rm);
+        if (fi >= 0) {
+          state.field[fi] = null;
+          removed++;
+          continue;
+        }
+        // 从备战席移除
+        let bi = state.bench.indexOf(rm);
+        if (bi >= 0) {
+          state.bench.splice(bi, 1);
+          removed++;
+        }
+      }
+      
+      // 将合成后的角色移到备战席
+      let ki = state.field.indexOf(keep);
+      if (ki >= 0) {
+        state.field[ki] = null;
+        state.bench.push(keep);
+      }
+      
+      showToast(`${base.name} 三合一升至 ${newStar}星!`, 'success');
+      renderAll();
+      return; // 一次只合成一组
+    }
+  }
+}
+
 function moveChar(sT,sI,dT,dI){
   const sC=sT==='field'?state.field[sI]:state.bench[sI];if(!sC)return;
   const dC=dT==='field'?state.field[dI]:dI>=0&&dI<state.bench.length?state.bench[dI]:null;
@@ -345,6 +402,7 @@ function moveChar(sT,sI,dT,dI){
   if(sT==='field')state.field[sI]=dC;else{if(dC)state.bench[sI]=dC;else state.bench.splice(sI,1)}
   if(dT==='field')state.field[dI]=sC;else{if(!dC)state.bench.push(sC);else state.bench[dI]=sC}
   if(sT==='bench'&&dT==='bench'&&!dC){state.bench.pop();state.bench.splice(sI,1);state.bench.push(sC)}
+  tryAutoMergeChars(); // 尝试自动合成角色
   renderAll();
 }
 function sellChar(sT,sI){
