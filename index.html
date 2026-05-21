@@ -332,6 +332,63 @@ function hasDupOnField(charId,exIdx){const base=getCharBase(charId);for(let i=0;
 function countFieldChars(){return state.field.filter(Boolean).length}
 function countFrontRow(){return state.field.slice(0,4).filter(Boolean).length}
 
+// 尝试自动合成角色：当前台、后台、备战席上一共有三个相同星级的同名角色时自动合成
+function tryAutoMergeChars(){
+  // 收集所有角色（场上 + 备战席）
+  const allChars = [...state.field.filter(Boolean), ...state.bench];
+  if (allChars.length < 3) return;
+  
+  // 按角色 ID 和星级分组
+  const groups = {};
+  for (const c of allChars) {
+    const key = `${c.id}_star${c.star}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(c);
+  }
+  
+  // 检查是否有任意一组达到 3 个
+  for (const [key, chars] of Object.entries(groups)) {
+    if (chars.length >= 3) {
+      const base = getCharBase(chars[0].id);
+      const newStar = chars[0].star + 1;
+      
+      // 保留一个角色并提升星级
+      const keep = chars[0];
+      keep.star = newStar;
+      
+      // 移除另外两个角色
+      let removed = 0;
+      for (let i = 1; i < chars.length && removed < 2; i++) {
+        const rm = chars[i];
+        // 从场上移除
+        let fi = state.field.indexOf(rm);
+        if (fi >= 0) {
+          state.field[fi] = null;
+          removed++;
+          continue;
+        }
+        // 从备战席移除
+        let bi = state.bench.indexOf(rm);
+        if (bi >= 0) {
+          state.bench.splice(bi, 1);
+          removed++;
+        }
+      }
+      
+      // 将合成后的角色移到备战席
+      let ki = state.field.indexOf(keep);
+      if (ki >= 0) {
+        state.field[ki] = null;
+        state.bench.push(keep);
+      }
+      
+      showToast(`${base.name} 三合一升至 ${newStar}星!`, 'success');
+      renderAll();
+      return; // 一次只合成一组
+    }
+  }
+}
+
 function moveChar(sT,sI,dT,dI){
   const sC=sT==='field'?state.field[sI]:state.bench[sI];if(!sC)return;
   const dC=dT==='field'?state.field[dI]:dI>=0&&dI<state.bench.length?state.bench[dI]:null;
@@ -345,6 +402,7 @@ function moveChar(sT,sI,dT,dI){
   if(sT==='field')state.field[sI]=dC;else{if(dC)state.bench[sI]=dC;else state.bench.splice(sI,1)}
   if(dT==='field')state.field[dI]=sC;else{if(!dC)state.bench.push(sC);else state.bench[dI]=sC}
   if(sT==='bench'&&dT==='bench'&&!dC){state.bench.pop();state.bench.splice(sI,1);state.bench.push(sC)}
+  tryAutoMergeChars(); // 尝试自动合成角色
   renderAll();
 }
 function sellChar(sT,sI){
@@ -380,9 +438,13 @@ function openCrystal(cry){
 /* 拖拽 */
 function initDrag(e,sT,sI){
   const c=sT==='field'?state.field[sI]:state.bench[sI];if(!c)return;e.preventDefault();
+  // 拖动时临时减少场上人数
+  if(sT==='field')state.field[sI]=null;
+  else state.bench.splice(sI,1);
+  renderAll();
   const ghost=document.createElement('div');ghost.className='drag-ghost';ghost.style.width='70px';ghost.style.height='88px';
   ghost.innerHTML=buildCharMiniHTML(c);ghost.style.left=(e.clientX-35)+'px';ghost.style.top=(e.clientY-44)+'px';
-  document.body.appendChild(ghost);dragInfo={type:'char',srcType:sT,srcIdx:sI,char:c,ghost,price:getSellPrice(c)};
+  document.body.appendChild(ghost);dragInfo={type:'char',srcType:sT,srcIdx:sI,char:c,ghost,price:getSellPrice(c),fromField:sT==='field'};
   document.getElementById('sell-left').classList.add('visible');document.getElementById('sell-right').classList.add('visible');
   document.getElementById('sell-price-left').textContent=dragInfo.price+'💰';document.getElementById('sell-price-right').textContent=dragInfo.price+'💰';
   document.addEventListener('pointermove',onDragMove);document.addEventListener('pointerup',onDragEnd);
@@ -409,7 +471,49 @@ function onDragEnd(e){
   document.querySelectorAll('.sell-zone.drag-over').forEach(s=>s.classList.remove('drag-over'));
   document.getElementById('sell-left').classList.remove('visible');document.getElementById('sell-right').classList.remove('visible');
   document.removeEventListener('pointermove',onDragMove);document.removeEventListener('pointerup',onDragEnd);
-  if(dragInfo.type==='char'){const sz=el?.closest('.sell-zone');if(sz){sellChar(dragInfo.srcType,dragInfo.srcIdx);dragInfo=null;return}const sl=el?.closest('.slot');if(sl){const fI=sl.dataset.fieldIdx,bI=sl.dataset.benchIdx;if(fI!==undefined)moveChar(dragInfo.srcType,dragInfo.srcIdx,'field',parseInt(fI));else if(bI!==undefined){const i=parseInt(bI);moveChar(dragInfo.srcType,dragInfo.srcIdx,'bench',i>=state.bench.length?-1:i)}}}
+  if(dragInfo.type==='char'){
+    const sz=el?.closest('.sell-zone');
+    if(sz){
+      state.gold+=dragInfo.price;
+      showToast(`出售 ${getCharBase(dragInfo.char.id).name} +${dragInfo.price}💰`,'info');
+      dragInfo=null;renderAll();return;
+    }
+    const sl=el?.closest('.slot');
+    if(sl){
+      const fI=sl.dataset.fieldIdx,bI=sl.dataset.benchIdx;
+      if(fI!==undefined){
+        const targetSlot=state.field[parseInt(fI)];
+        if(targetSlot){
+          if(dragInfo.fromField)state.field[dragInfo.srcIdx]=targetSlot;
+          else state.bench.push(targetSlot);
+          state.field[parseInt(fI)]=dragInfo.char;
+        }else{
+          if(!dragInfo.fromField&&countFieldChars()>=maxPop()){
+            state.bench.push(dragInfo.char);
+            showToast(`人口已满 (${maxPop()})，请先升级`,'error');
+          }else if(hasDupOnField(dragInfo.char.id,parseInt(fI))){
+            state.bench.push(dragInfo.char);
+            showToast('同名角色不可上阵','error');
+          }else{
+            state.field[parseInt(fI)]=dragInfo.char;
+          }
+        }
+      }else if(bI!==undefined){
+        const i=parseInt(bI);
+        if(i>=state.bench.length)state.bench.push(dragInfo.char);
+        else{
+          const targetChar=state.bench[i];
+          state.bench[i]=dragInfo.char;
+          if(dragInfo.fromField)state.field[dragInfo.srcIdx]=targetChar;
+          else state.bench.splice(dragInfo.srcIdx,1,targetChar);
+        }
+      }
+    }else{
+      if(dragInfo.fromField)state.field[dragInfo.srcIdx]=dragInfo.char;
+      else state.bench.splice(dragInfo.srcIdx,0,dragInfo.char);
+    }
+    tryAutoMergeChars();
+  }
   else if(dragInfo.type==='equip'){const sl=el?.closest('.slot');if(sl&&sl.classList.contains('filled')){const fI=sl.dataset.fieldIdx,bI=sl.dataset.benchIdx;let ch;if(fI!==undefined)ch=state.field[parseInt(fI)];else if(bI!==undefined)ch=state.bench[parseInt(bI)];if(ch){if(ch.equips&&ch.equips.length>=3)showToast('装备栏满','error');else{equipToChar(ch,dragInfo.equipId);showToast(`装备 ${getEquipBase(dragInfo.equipId).name}`,'info')}}}const es=el?.closest('.equip-slot');if(es){const tI=parseInt(es.dataset.equipIdx);if(tI!==dragInfo.srcIdx&&state.equips[tI]===dragInfo.equipId)tryMergeEquip(dragInfo.equipId,dragInfo.equipId)}}
   dragInfo=null;renderAll();
 }
@@ -477,7 +581,7 @@ function renderShop(){
 function renderEquips(){
   const g=document.getElementById('equip-grid');let h='';
   state.equips.forEach((eid,i)=>{const b=getEquipBase(eid);if(!b)return;const tc=b.tier===1?'var(--muted)':b.tier===2?'var(--cost3)':b.tier===3?'var(--gold)':'var(--cost5)';
-    h+=`<div class="equip-slot" data-equip-idx="${i}" style="border-color:${b.color||'var(--border)'}"><span style="color:${b.color};font-size:.48rem;font-weight:700">${b.name.substring(0,2)}</span><span class="equip-tier" style="color:${tc}">${b.tier>0?'T'+b.tier:'★'}</span></div>`});
+    h+=`<div class="equip-slot" data-equip-idx="${i}" style="border-color:${b.color||'var(--border)'}"><span style="font-size:.7rem">${b.emoji||''}</span><span class="equip-tier" style="color:${tc}">${b.tier>0?'T'+b.tier:'★'}</span></div>`});
   g.innerHTML=h;document.querySelectorAll('.equip-slot').forEach(el=>{const i=parseInt(el.dataset.equipIdx);el.addEventListener('pointerdown',e=>initEquipDrag(e,i))});
 }
 function renderCrystals(){
@@ -537,7 +641,7 @@ async function startBattle(){
       if(unit.isEnemy)await enemyAction(unit,allies,enemies,logEl);else await allyAction(unit,allies,enemies,logEl);
       for(const u of allies.filter(a=>a.hp>0&&a.energy>=a.maxEnergy))await execUlt(u,allies,enemies,logEl);
       enemies.filter(e=>e.hp>0&&e.dots>0).forEach(e=>{const dd=Math.round(e.dots*8);e.hp=Math.max(0,e.hp-dd);e.dots=Math.ceil(e.dots/2);addLog(logEl,`<span class="log-dot">DoT：${e.name} -${dd}</span>`)});
-      enemies.filter(e=>e.hp<=0&&!e._ct).forEach(e=>{e._ct=true;battleState.killCount++;const r=Math.random();addCrystal(r<.4?'silver':r<.75?'blue':r<.93?'gold':'rainbow')});
+      enemies.filter(e=>e.hp<=0&&!e._ct).forEach(e=>{e._ct=true;battleState.killCount++;const r=Math.random();const lvl=state.level;let t='silver';if(r<0.15+lvl*0.02)t='rainbow';else if(r<0.35+lvl*0.03)t='gold';else if(r<0.65+lvl*0.02)t='blue';addCrystal(t)});
       renderBattle(allies,enemies);await sleep(180);
     }
   }
