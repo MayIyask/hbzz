@@ -1,99 +1,669 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>货币战争 · 零和博弈</title>
-  <!-- 字体和图标 -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <!-- 样式 -->
-  <link rel="stylesheet" href="css/style.css">
-  <!-- 禁用 favicon 请求 -->
-  <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAAAAAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>货币战争 · 零和博弈</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{--bg:#080c18;--bg2:#0e1528;--card:#141e35;--card2:#1a2744;--border:#253354;--gold:#f0b429;--gold2:#ffd666;--gold3:#c49000;--text:#e8e2d6;--muted:#6b7a94;--red:#ef4444;--green:#22c55e;--cost1:#9ca3af;--cost2:#4ade80;--cost3:#60a5fa;--cost4:#c084fc;--cost5:#fbbf24;--phys:#9ca3af;--fire:#ef4444;--ice:#60a5fa;--elec:#c084fc;--wind:#4ade80;--quant:#818cf8;--imag:#fbbf24}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;min-height:100vh;user-select:none}
+.gold-text{background:linear-gradient(135deg,var(--gold),var(--gold2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.screen{display:none}.screen.active{display:flex}
+canvas#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+#title-screen{flex-direction:column;align-items:center;justify-content:center;min-height:100vh;z-index:1;position:relative;text-align:center;gap:1.5rem}
+.title-main{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:.05em}
+.title-sub{font-size:clamp(1rem,3vw,1.4rem);color:var(--gold);font-weight:700;letter-spacing:.3em}
+.start-btn{padding:1rem 3rem;font-size:1.1rem;font-weight:700;background:linear-gradient(135deg,var(--gold3),var(--gold));color:#1a1a2e;border:none;border-radius:12px;cursor:pointer;transition:all .3s;letter-spacing:.1em}
+.start-btn:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 8px 30px rgba(240,180,41,.4)}
+
+#game-screen{flex-direction:column;min-height:100vh;z-index:1;position:relative}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;background:var(--bg2);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.3rem}
+.stat-item{display:flex;align-items:center;gap:.3rem;font-weight:700;font-size:.85rem}
+.node-progress{display:flex;gap:2px;align-items:center}
+.node-dot{width:12px;height:12px;border-radius:50%;background:var(--card);border:2px solid var(--border);transition:all .3s}
+.node-dot.completed{background:var(--gold);border-color:var(--gold)}.node-dot.current{border-color:var(--gold);box-shadow:0 0 6px rgba(240,180,41,.5)}.node-dot.reward{border-color:var(--green);background:rgba(34,197,94,.3)}
+
+.shop-area{padding:.4rem .8rem;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:stretch;gap:.4rem}
+.shop-cards{display:flex;gap:.3rem;flex:1;justify-content:center;flex-wrap:wrap}
+.shop-card{width:90px;background:var(--card2);border:2px solid var(--border);border-radius:8px;padding:.3rem;cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0}
+.shop-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.4)}.shop-card.sold{opacity:.2;pointer-events:none}
+.refresh-btn{width:40px;height:40px;border-radius:50%;background:#fff;color:#333;border:none;cursor:pointer;font-size:1rem;font-weight:900;display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0;align-self:center;position:relative}
+.refresh-btn:hover{transform:scale(1.1)}.refresh-btn:disabled{opacity:.3;cursor:not-allowed}
+.refresh-cost{position:absolute;bottom:-12px;font-size:.55rem;color:var(--gold);font-weight:700;white-space:nowrap}
+
+.main-content{display:flex;flex:1;overflow:hidden}
+.bonds-sidebar{width:155px;flex-shrink:0;padding:.4rem;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:.25rem}
+.bond-card{padding:.3rem .4rem;background:var(--card);border:1px solid var(--border);border-radius:6px;transition:all .3s;font-size:.68rem}
+.bond-card.active{border-color:var(--gold);background:rgba(240,180,41,.08)}
+.bond-name{font-weight:700;display:flex;align-items:center;gap:.2rem;font-size:.68rem}.bond-tier{color:var(--gold);font-weight:700;font-size:.58rem}
+.bond-count{color:var(--muted);font-size:.58rem}
+
+/* 中间场地 + 等级 */
+.field-area{display:flex;gap:.4rem;flex:1;padding:.4rem;overflow-y:auto;flex-direction:column;min-width:0}
+.field-and-level{display:flex;gap:.4rem;flex:1}
+.level-panel{width:50px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.3rem;padding-top:.2rem}
+.level-bar-outer{width:36px;height:160px;background:#111;border:2px solid var(--border);border-radius:6px;position:relative;overflow:hidden}
+.level-bar-fill{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.85);transition:height .4s ease;border-radius:0 0 4px 4px}
+.level-bar-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;color:var(--gold);text-shadow:0 0 3px rgba(0,0,0,.8);writing-mode:vertical-lr;letter-spacing:2px}
+.level-num{font-size:1rem;font-weight:900;color:var(--gold);text-align:center}
+.level-sub{font-size:.5rem;color:var(--muted);text-align:center}
+.level-btn{width:46px;padding:.25rem 0;border:1px solid var(--gold);border-radius:5px;background:rgba(240,180,41,.1);color:var(--gold);font-size:.5rem;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;line-height:1.2}
+.level-btn:hover{background:rgba(240,180,41,.25)}.level-btn:disabled{opacity:.3;cursor:not-allowed}
+.level-pop{font-size:.45rem;color:var(--muted);text-align:center}
+
+.field-container{flex:1;display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.row-label{font-size:.6rem;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-bottom:.1rem}
+.char-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.slot{width:70px;height:88px;border:2px dashed rgba(37,51,84,.5);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;position:relative;background:rgba(20,30,53,.4)}
+.slot:hover{border-color:var(--muted)}.slot.filled{border-style:solid}.slot.drag-over{border-color:var(--gold)!important;box-shadow:0 0 12px rgba(240,180,41,.3)}.slot.dup-warn{border-color:var(--red)!important}
+.slot.locked{border-color:rgba(37,51,84,.25)!important;background:rgba(10,15,30,.5);cursor:not-allowed}
+.slot.locked::after{content:'🔒';position:absolute;font-size:.7rem;color:var(--border)}
+.bench-overflow{border-color:var(--red)!important;animation:pulseRed 1s infinite}
+@keyframes pulseRed{0%,100%{border-color:var(--red)}50%{border-color:rgba(239,68,68,.4)}}
+.char-mini{display:flex;flex-direction:column;align-items:center;gap:0;width:100%;height:100%;padding:2px;cursor:grab;touch-action:none;position:relative}
+.char-mini:active{cursor:grabbing}
+.char-name{font-size:.52rem;font-weight:700;text-align:center;line-height:1.1;overflow:hidden;max-height:1.3em}
+.char-stars{font-size:.48rem;color:var(--gold)}.char-bonds{font-size:.4rem;color:var(--muted);text-align:center;overflow:hidden;max-height:1em}
+.char-stats{font-size:.42rem;color:var(--muted)}
+.cost-dot{position:absolute;top:2px;right:3px;width:8px;height:8px;border-radius:50%;border:1px solid}
+.equip-icons{position:absolute;bottom:1px;left:2px;display:flex;gap:1px}
+.equip-icon{width:7px;height:7px;border-radius:2px;border:1px solid rgba(255,255,255,.3)}
+.overflow-warn{font-size:.55rem;color:var(--red);font-weight:700;text-align:center;padding:.15rem;animation:pulseRed 1.5s infinite}
+
+/* 右侧面板 */
+.right-panel{width:190px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--bg2)}
+.panel-section{padding:.4rem;border-bottom:1px solid var(--border)}
+.panel-title{font-size:.6rem;font-weight:700;color:var(--gold);margin-bottom:.3rem;display:flex;align-items:center;gap:.3rem}
+.equip-grid{display:flex;flex-wrap:wrap;gap:.25rem}
+.equip-slot{width:40px;height:40px;background:var(--card);border:1px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:grab;touch-action:none;font-size:.48rem;position:relative;transition:all .2s}
+.equip-slot:hover{border-color:var(--gold)}.equip-slot .equip-tier{position:absolute;top:1px;right:2px;font-size:.38rem;font-weight:900}
+.equip-slot.drag-over-equip{border-color:var(--gold);box-shadow:0 0 8px rgba(240,180,41,.4)}
+.crystal-area{flex:1;position:relative;min-height:160px;overflow:hidden;background:radial-gradient(ellipse at center,rgba(20,30,53,.6),transparent)}
+.crystal{position:absolute;border-radius:50%;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:900;animation:cFloat 2s ease-in-out infinite}
+.crystal:hover{transform:scale(1.2);filter:brightness(1.3)}.crystal.opening{animation:cOpen .5s ease forwards}
+@keyframes cFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes cOpen{0%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.8}100%{transform:scale(0);opacity:0}}
+.crystal-silver{width:26px;height:26px;background:radial-gradient(circle,#d1d5db,#6b7280);border:2px solid #9ca3af;box-shadow:0 0 5px rgba(156,163,175,.5)}
+.crystal-blue{width:30px;height:30px;background:radial-gradient(circle,#93c5fd,#2563eb);border:2px solid #60a5fa;box-shadow:0 0 7px rgba(96,165,250,.5)}
+.crystal-gold{width:34px;height:34px;background:radial-gradient(circle,#fde68a,#d97706);border:2px solid #fbbf24;box-shadow:0 0 9px rgba(251,191,36,.5)}
+.crystal-rainbow{width:38px;height:38px;background:conic-gradient(#ef4444,#fbbf24,#4ade80,#60a5fa,#c084fc,#ef4444);border:2px solid #fff;box-shadow:0 0 12px rgba(255,255,255,.5)}
+.crystal-reward{position:absolute;background:var(--card);border:1px solid var(--gold);border-radius:5px;padding:.25rem .4rem;font-size:.55rem;font-weight:700;color:var(--gold);animation:rPop .8s ease forwards;white-space:nowrap;z-index:10;pointer-events:none}
+@keyframes rPop{0%{transform:translateY(0) scale(0);opacity:0}30%{transform:translateY(-8px) scale(1.1);opacity:1}100%{transform:translateY(-25px) scale(1);opacity:0}}
+
+.sell-zone{position:fixed;bottom:16px;width:80px;height:64px;background:rgba(239,68,68,.15);border:2px dashed var(--red);border-radius:10px;display:none;align-items:center;justify-content:center;flex-direction:column;z-index:200}
+.sell-zone.visible{display:flex}.sell-zone.drag-over{background:rgba(239,68,68,.35);border-style:solid}
+.sell-zone-left{left:16px}.sell-zone-right{right:16px}
+.sell-label{font-size:.75rem;font-weight:900;color:var(--red)}.sell-price{font-size:.6rem;color:var(--gold)}
+.drag-ghost{position:fixed;z-index:300;pointer-events:none;opacity:.85;transform:scale(1.06);filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
+
+/* 战斗 */
+#battle-screen{flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:.4rem;gap:.4rem;z-index:1;position:relative}
+.battle-teams{display:flex;gap:.8rem;align-items:flex-start;justify-content:center;flex-wrap:wrap;width:100%}
+.battle-team{display:flex;flex-direction:column;gap:.25rem;min-width:170px;max-width:250px;flex:1}
+.battle-char{position:relative;padding:.3rem .4rem .3rem 1.8rem;background:var(--card);border-radius:7px;border:2px solid var(--border);min-width:160px;transition:all .3s;display:flex;flex-direction:column;gap:.12rem}
+.battle-char.dead{opacity:.25}.battle-char.acting{border-color:var(--gold);box-shadow:0 0 10px rgba(240,180,41,.4)}
+.battle-char.enemy.acting{border-color:var(--red);box-shadow:0 0 10px rgba(239,68,68,.4)}
+.battle-char.back-row{border-left:3px solid var(--cost3)}
+.char-avatar{position:absolute;left:.2rem;top:.2rem;width:1.4rem;height:1.4rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;color:#fff;border:2px solid}
+.char-top{display:flex;align-items:center;gap:.2rem;font-size:.6rem;font-weight:700;flex-wrap:wrap}
+.bar-wrap{position:relative;height:5px;background:#1a1a2e;border-radius:3px;overflow:visible}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.hp-fill{background:var(--green)}.tough-fill{background:rgba(255,255,255,.8)}
+.shield-bar{position:absolute;top:-2px;left:0;height:2px;background:rgba(255,255,255,.9);border-radius:1px;transition:width .4s}
+.energy-ring{position:absolute;left:.1rem;top:.1rem;width:1.6rem;height:1.6rem;border-radius:50%;pointer-events:none}
+.sp-area{display:flex;gap:.2rem;align-items:center}.sp-dot{width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--border);transition:all .3s}
+.sp-dot.filled{background:var(--gold);border-color:var(--gold)}
+.battle-vs{font-size:1.5rem;font-weight:900;color:var(--gold);text-shadow:0 0 15px rgba(240,180,41,.5);align-self:center}
+.battle-log{max-height:75px;overflow-y:auto;padding:.25rem;background:var(--bg2);border-radius:6px;border:1px solid var(--border);font-size:.55rem;color:var(--muted);width:100%;max-width:520px}
+.log-dmg{color:var(--red)}.log-heal{color:var(--green)}.log-bond{color:var(--gold)}.log-sp{color:var(--cost5)}.log-shield{color:#eee}.log-dot{color:var(--cost4)}.log-break{color:var(--cost3)}.log-lvl{color:var(--cost5)}
+
+.fx-container{position:fixed;inset:0;pointer-events:none;z-index:400}
+.fx{position:absolute;font-weight:900;pointer-events:none;animation:fxFloat 1s ease-out forwards}
+.fx-dmg{color:var(--red);font-size:.95rem;text-shadow:0 0 4px rgba(239,68,68,.5)}
+.fx-crit{color:#ff6b6b;font-size:1.2rem;text-shadow:0 0 8px rgba(255,0,0,.6)}
+.fx-heal{color:var(--green);font-size:.85rem;text-shadow:0 0 4px rgba(34,197,94,.5)}
+.fx-shield{color:#fff;font-size:.8rem;text-shadow:0 0 4px rgba(255,255,255,.5)}
+.fx-break{color:var(--cost3);font-size:1rem;text-shadow:0 0 6px rgba(96,165,250,.6)}
+.fx-dot{color:var(--cost4);font-size:.75rem;text-shadow:0 0 4px rgba(192,132,252,.5)}
+.fx-ult{color:var(--gold);font-size:1.3rem;text-shadow:0 0 12px rgba(240,180,41,.7)}
+@keyframes fxFloat{0%{opacity:1;transform:translateY(0) scale(1)}40%{opacity:1;transform:translateY(-18px) scale(1.1)}100%{opacity:0;transform:translateY(-40px) scale(.8)}}
+.fx-flash{position:absolute;inset:0;border-radius:7px;pointer-events:none;animation:fxFlash .4s ease forwards}
+@keyframes fxFlash{0%{opacity:.6}100%{opacity:0}}
+.fx-flash-red{background:rgba(239,68,68,.3)}.fx-flash-green{background:rgba(34,197,94,.3)}.fx-flash-white{background:rgba(255,255,255,.3)}.fx-flash-gold{background:rgba(240,180,41,.3)}.fx-flash-blue{background:rgba(96,165,250,.3)}.fx-flash-purple{background:rgba(192,132,252,.3)}
+
+#result-screen{flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:1.2rem;text-align:center;z-index:1;position:relative}
+.result-title{font-size:2.2rem;font-weight:900}
+.result-win{color:var(--gold);text-shadow:0 0 25px rgba(240,180,41,.5)}.result-lose{color:var(--red);text-shadow:0 0 25px rgba(239,68,68,.5)}
+.result-rewards{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;min-width:200px}
+.toast{position:fixed;top:.8rem;right:.8rem;padding:.5rem 1rem;border-radius:8px;font-weight:700;font-size:.8rem;z-index:999;animation:slideIn .3s ease;pointer-events:none}
+.toast-success{background:rgba(34,197,94,.9);color:#fff}.toast-error{background:rgba(239,68,68,.9);color:#fff}.toast-info{background:rgba(240,180,41,.92);color:#1a1a2e}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem;max-width:360px;width:90%;max-height:75vh;overflow-y:auto}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+@media(max-width:800px){.bonds-sidebar{width:100%;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border);max-height:50px}.bond-card{min-width:100px;flex-shrink:0}.main-content{flex-direction:column}.right-panel{width:100%;flex-direction:row;max-height:100px}.slot{width:58px;height:74px}.shop-card{width:72px}.level-panel{width:40px}.level-bar-outer{height:100px}}
+</style>
 </head>
 <body>
-  <!-- 粒子背景 canvas -->
-  <canvas id="particles" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;"></canvas>
+<canvas id="particles"></canvas>
+<div class="fx-container" id="fx-container"></div>
+<div class="sell-zone sell-zone-left" id="sell-left"><div class="sell-label">出售</div><div class="sell-price" id="sell-price-left"></div></div>
+<div class="sell-zone sell-zone-right" id="sell-right"><div class="sell-label">出售</div><div class="sell-price" id="sell-price-right"></div></div>
 
-  <!-- ===== 标题屏幕 ===== -->
-  <div id="title-screen" class="screen active">
-    <div class="title-main">货币战争</div>
-    <div class="title-sub">零和博弈</div>
-    <button class="start-btn" onclick="window.startGame()">开始游戏</button>
+<div id="title-screen" class="screen active">
+  <div style="position:relative;z-index:1"><div class="title-main gold-text">货币战争</div><div class="title-sub" style="margin-top:.5rem">零 和 博 弈</div>
+  <p style="color:var(--muted);margin-top:1rem;font-size:.8rem;max-width:350px">购买角色，升级人口，搭配羁绊</p>
+  <button class="start-btn" style="margin-top:1.5rem" onclick="startGame()"><i class="fas fa-coins" style="margin-right:.5rem"></i>开始对局</button></div>
+</div>
+
+<div id="game-screen" class="screen" style="flex-direction:column">
+  <div class="top-bar">
+    <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+      <div class="stat-item"><i class="fas fa-coins" style="color:var(--gold)"></i><span id="gold-display">10</span></div>
+      <div class="stat-item"><i class="fas fa-heart" style="color:var(--red)"></i><span id="hp-display">30</span></div>
+      <div class="stat-item"><i class="fas fa-fire" style="color:orange"></i><span id="streak-display">0</span>连胜</div>
+    </div>
+    <div class="node-progress" id="node-progress"></div>
+    <button style="padding:.25rem .5rem;border:1px solid var(--border);border-radius:5px;background:var(--card);color:var(--text);cursor:pointer;font-size:.7rem" onclick="showBondInfo()"><i class="fas fa-book"></i></button>
   </div>
-
-  <!-- ===== 游戏界面 ===== -->
-  <div id="game-screen" class="screen">
-    <div class="top-bar">
-      <div class="stat-item"><i class="fas fa-user"></i> Lv<span id="level-display">1</span></div>
-      <div class="stat-item"><i class="fas fa-coins gold-text"></i> <span id="gold-display">0</span></div>
-      <button class="btn-small" onclick="window.refreshShop()"><i class="fas fa-sync"></i> 刷新 (2)</button>
-      <button class="btn-small" onclick="window.buyExp()"><i class="fas fa-arrow-up"></i> 升级人口 (4)</button>
-    </div>
-
-    <div class="shop-section">
-      <div class="section-title">商店</div>
-      <div id="shop-container" class="card-row"></div>
-    </div>
-
-    <div class="field-section">
-      <div class="section-title">战场 (最多 5 人)</div>
-      <div id="field-container" class="card-row drop-zone"></div>
-    </div>
-
-    <div class="bench-section">
-      <div class="section-title">替补席</div>
-      <div id="bench-container" class="card-row drop-zone"></div>
-    </div>
-
-    <div class="action-bar">
-      <button class="btn-large" onclick="window.startBattle()"><i class="fas fa-skull"></i> 开始战斗</button>
-    </div>
+  <div class="shop-area">
+    <div class="shop-cards" id="shop-cards"></div>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshShop()"><i class="fas fa-rotate"></i><span class="refresh-cost">2💰</span></button>
   </div>
-
-  <!-- ===== 战斗界面 ===== -->
-  <div id="battle-screen" class="screen">
-    <div class="battle-header">
-      <div class="battle-info">
-        <span>我方：<span id="battle-player-hp">100</span> HP</span>
-        <span>敌方：<span id="battle-enemy-hp">100</span> HP</span>
-      </div>
-      <div class="battle-round">第 <span id="battle-round">1</span> 回合</div>
-    </div>
-    <div class="battle-field">
-      <div class="battle-side player-side">
-        <div id="battle-player-field" class="battle-row"></div>
-      </div>
-      <div class="battle-divider">VS</div>
-      <div class="battle-side enemy-side">
-        <div id="battle-enemy-field" class="battle-row"></div>
+  <div class="main-content">
+    <div class="bonds-sidebar" id="bonds-sidebar"></div>
+    <div class="field-area">
+      <div class="field-and-level">
+        <div class="level-panel" id="level-panel"></div>
+        <div class="field-container">
+          <div class="row-label"><i class="fas fa-crosshairs" style="color:var(--red)"></i> 前排 FRONT (4)</div>
+          <div class="char-row" id="front-row"></div>
+          <div class="row-label" style="margin-top:.3rem"><i class="fas fa-shield-halved"></i> 后排 BACK (6)</div>
+          <div class="char-row" id="back-row"></div>
+          <div class="row-label" style="margin-top:.3rem"><i class="fas fa-chair"></i> 备战席 BENCH</div>
+          <div class="char-row" id="bench-row"></div>
+          <div id="overflow-warn"></div>
+          <div style="text-align:center;margin-top:.4rem"><button class="start-btn" style="padding:.5rem 1.5rem;font-size:.85rem" onclick="startBattle()"><i class="fas fa-swords" style="margin-right:.3rem"></i>出 战</button></div>
+        </div>
       </div>
     </div>
-    <div id="battle-log" class="battle-log"></div>
-  </div>
-
-  <!-- ===== 结果界面 ===== -->
-  <div id="result-screen" class="screen">
-    <div class="result-title" id="result-title">胜利!</div>
-    <div class="result-reward">
-      奖励：<span class="gold-text" id="result-gold">+10</span> 金币
+    <div class="right-panel">
+      <div class="panel-section"><div class="panel-title"><i class="fas fa-toolbox"></i>装备</div><div class="equip-grid" id="equip-grid"></div></div>
+      <div class="panel-section" style="flex:1;display:flex;flex-direction:column"><div class="panel-title"><i class="fas fa-gem"></i>晶矿区 <span style="font-size:.45rem;color:var(--muted)">按住划过开启</span></div><div class="crystal-area" id="crystal-area"></div></div>
     </div>
-    <button class="btn-large" onclick="window.returnToLobby()">返回</button>
   </div>
+</div>
 
-  <!-- ===== 数据模块 (必须先加载) ===== -->
-  <script src="data/constants.js"></script>
-  <script src="data/characters.js"></script>
-  <script src="data/bonds.js"></script>
-  <script src="data/equipment.js"></script>
-  <script src="data/enemies.js"></script>
+<div id="battle-screen" class="screen" style="flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:.4rem;padding:.4rem">
+  <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;justify-content:center">
+    <div style="font-weight:900;font-size:1rem;color:var(--gold)">节点 <span id="battle-node">1</span></div>
+    <div class="sp-area" id="sp-area"></div>
+  </div>
+  <div class="battle-teams"><div class="battle-team" id="battle-ally"></div><div class="battle-vs">VS</div><div class="battle-team" id="battle-enemy"></div></div>
+  <div class="battle-log" id="battle-log"></div>
+</div>
 
-  <!-- ===== 游戏逻辑模块 ===== -->
-  <script src="js/utils.js"></script>
-  <script src="js/drag.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/battle.js"></script>
-  <script src="js/game.js"></script>
+<div id="result-screen" class="screen" style="flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:1.2rem">
+  <div id="result-title" class="result-title"></div><div id="result-rewards" class="result-rewards"></div>
+  <button class="start-btn" onclick="nextNode()"><i class="fas fa-arrow-right" style="margin-right:.5rem"></i><span id="next-btn-text">下一节点</span></button>
+</div>
+
+<div class="modal-overlay" id="bond-modal"><div class="modal">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem"><h2 style="font-weight:900;font-size:1rem" class="gold-text">羁绊一览</h2><button onclick="document.getElementById('bond-modal').classList.remove('active')" style="background:none;border:none;color:var(--muted);cursor:pointer"><i class="fas fa-xmark"></i></button></div>
+  <div id="bond-modal-content"></div>
+</div></div>
+
+<script>
+const ELEMS=['phys','fire','ice','elec','wind','quant','imag'];
+const ELEM_CSS={phys:'var(--phys)',fire:'var(--fire)',ice:'var(--ice)',elec:'var(--elec)',wind:'var(--wind)',quant:'var(--quant)',imag:'var(--imag)'};
+const CHAR_DATA=[
+  {id:'sanzhiqi',name:'三月七',cost:1,bonds:['列车同行','护盾'],atk:75,hp:850,spd:98,pos:'front',elem:'ice'},
+  {id:'danheng',name:'丹恒',cost:1,bonds:['列车同行'],atk:115,hp:520,spd:112,pos:'front',elem:'wind'},
+  {id:'herta',name:'黑塔',cost:1,bonds:['银河学者','群攻'],atk:95,hp:480,spd:96,pos:'back',elem:'ice'},
+  {id:'asta',name:'艾丝妲',cost:1,bonds:['银河学者','持续伤害'],atk:65,hp:520,spd:104,pos:'back',elem:'fire'},
+  {id:'sampo',name:'桑博',cost:1,bonds:['持续伤害','贝洛伯格','星间旅人'],atk:88,hp:560,spd:101,pos:'back',elem:'wind'},
+  {id:'qingque',name:'青雀',cost:1,bonds:['仙舟','战技点'],atk:108,hp:500,spd:99,pos:'front',elem:'quant'},
+  {id:'gallaher',name:'加拉赫',cost:1,bonds:['击破','治疗','盛会之星'],atk:80,hp:700,spd:95,pos:'back',elem:'fire'},
+  {id:'ruanmei',name:'阮·梅',cost:2,bonds:['击破','银河学者'],atk:58,hp:620,spd:100,pos:'back',elem:'ice'},
+  {id:'ajin',name:'砂金',cost:2,bonds:['公司','追击','护盾'],atk:78,hp:920,spd:94,pos:'back',elem:'imag'},
+  {id:'lingsha',name:'灵砂',cost:2,bonds:['击破','狼狩','治疗'],atk:82,hp:680,spd:100,pos:'back',elem:'fire'},
+  {id:'huahuo',name:'花火',cost:2,bonds:['战技点','量子同频','盛会之星'],atk:76,hp:540,spd:108,pos:'back',elem:'quant'},
+  {id:'yinzhi',name:'银枝',cost:2,bonds:['群攻','星间旅人','能量'],atk:138,hp:580,spd:91,pos:'front',elem:'phys'},
+  {id:'peila',name:'佩拉',cost:2,bonds:['贝洛伯格','减益'],atk:95,hp:530,spd:106,pos:'back',elem:'ice'},
+  {id:'jizi',name:'姬子',cost:3,bonds:['列车同行','击破'],atk:155,hp:680,spd:96,pos:'front',elem:'fire'},
+  {id:'wgr',name:'忘归人',cost:3,bonds:['击破','仙舟'],atk:142,hp:640,spd:100,pos:'back',elem:'fire'},
+  {id:'zhenli',name:'真理医生',cost:3,bonds:['追击','银河学者','星间旅人','减益'],atk:168,hp:590,spd:101,pos:'front',elem:'imag'},
+  {id:'yanqing',name:'彦卿',cost:3,bonds:['仙舟','减益','狼狩'],atk:175,hp:530,spd:116,pos:'front',elem:'ice'},
+  {id:'xier',name:'希儿',cost:3,bonds:['贝洛伯格','量子同频'],atk:188,hp:490,spd:120,pos:'front',elem:'quant'},
+  {id:'saber',name:'Saber',cost:3,bonds:['星间旅人','能量'],atk:172,hp:600,spd:105,pos:'front',elem:'wind'},
+  {id:'jiepade',name:'杰帕德',cost:4,bonds:['贝洛伯格','护盾'],atk:95,hp:1350,spd:84,pos:'front',elem:'ice'},
+  {id:'luosha',name:'罗刹',cost:4,bonds:['星间旅人','治疗'],atk:82,hp:860,spd:100,pos:'back',elem:'imag'},
+  {id:'fuxuan',name:'符玄',cost:4,bonds:['仙舟','治疗','量子同频'],atk:72,hp:1020,spd:94,pos:'back',elem:'quant'},
+  {id:'daheitai',name:'大黑塔',cost:4,bonds:['银河学者','群攻'],atk:210,hp:590,spd:91,pos:'back',elem:'ice'},
+  {id:'welter',name:'瓦尔特',cost:5,bonds:['列车同行','减益'],atk:208,hp:690,spd:96,pos:'front',elem:'imag'},
+  {id:'tuopa',name:'托帕',cost:5,bonds:['公司','追击'],atk:228,hp:640,spd:100,pos:'back',elem:'fire'},
+  {id:'jingyuan',name:'景元',cost:5,bonds:['仙舟','群攻'],atk:248,hp:690,spd:86,pos:'front',elem:'elec'},
+  {id:'yunli',name:'云璃',cost:5,bonds:['狼狩','能量'],atk:235,hp:810,spd:91,pos:'back',elem:'phys'},
+  {id:'heitiane',name:'黑天鹅',cost:5,bonds:['盛会之星','持续伤害'],atk:218,hp:640,spd:100,pos:'back',elem:'wind'},
+  {id:'liuying',name:'流萤',cost:5,bonds:['星核猎手','击破'],atk:258,hp:590,spd:110,pos:'front',elem:'fire'},
+  {id:'buluoniya',name:'布洛妮娅',cost:5,bonds:['贝洛伯格','燃血'],atk:185,hp:690,spd:106,pos:'back',elem:'wind'},
+];
+const BOND_DATA={
+  '列车同行':{icon:'fa-train',tiers:[2,4,6],bonus:[{dmgMul:.15},{dmgMul:.30},{dmgMul:.50}],desc:'全队伤害'},
+  '星核猎手':{icon:'fa-star',tiers:[2,3,4],bonus:[{dmgMul:.2,hpMul:.12},{dmgMul:.4,hpMul:.24},{dmgMul:.65,hpMul:.36}],desc:'伤害生命'},
+  '银河学者':{icon:'fa-graduation-cap',tiers:[2,4,6],bonus:[{atkMul:.2},{atkMul:.45},{atkMul:.8}],desc:'强度'},
+  '公司':{icon:'fa-briefcase',tiers:[2,3],bonus:[{atkMul:.25,goldPerBattle:1},{atkMul:.6,goldPerBattle:3}],desc:'后台金币'},
+  '贝洛伯格':{icon:'fa-city',tiers:[2,4,6],bonus:[{dmgMul:.18},{dmgMul:.36},{dmgMul:.6}],desc:'伤害'},
+  '仙舟':{icon:'fa-ship',tiers:[3,5,7],bonus:[{atkMul:.2,spdMul:.08},{atkMul:.4,spdMul:.16},{atkMul:.7,spdMul:.28}],desc:'强度速度'},
+  '狼狩':{icon:'fa-paw',tiers:[3,5,7],bonus:[{atkMul:.18},{atkMul:.38},{atkMul:.65}],desc:'强度'},
+  '击破':{icon:'fa-burst',tiers:[2,4,6],bonus:[{dmgMul:.2},{dmgMul:.45},{dmgMul:.75}],desc:'超击破'},
+  '追击':{icon:'fa-crosshairs',tiers:[3,5,7],bonus:[{dmgMul:.2},{dmgMul:.45},{dmgMul:.75}],desc:'追击'},
+  '群攻':{icon:'fa-explosion',tiers:[3,5,7],bonus:[{critRate:.12},{critRate:.24},{critRate:.4}],desc:'暴击'},
+  '持续伤害':{icon:'fa-skull-crossbones',tiers:[2,4,6],bonus:[{dotDmg:.08},{dotDmg:.18},{dotDmg:.35}],desc:'DoT'},
+  '治疗':{icon:'fa-heart-pulse',tiers:[2,4,6],bonus:[{healMul:.25},{healMul:.5},{healMul:.85}],desc:'治疗'},
+  '护盾':{icon:'fa-shield-halved',tiers:[2,4],bonus:[{dmgReduce:.12,dmgMul:.1},{dmgReduce:.25,dmgMul:.3}],desc:'减伤伤害'},
+  '减益':{icon:'fa-arrow-down',tiers:[2,4,6],bonus:[{dmgMul:.18},{dmgMul:.4},{dmgMul:.7}],desc:'减益增伤'},
+  '燃血':{icon:'fa-fire',tiers:[2,4,6],bonus:[{hpMul:.15,dmgMul:.1},{hpMul:.3,dmgMul:.25},{hpMul:.5,dmgMul:.45}],desc:'生命伤害'},
+  '量子同频':{icon:'fa-atom',tiers:[2,3,4],bonus:[{dmgMul:.15},{dmgMul:.3},{dmgMul:.5}],desc:'易伤'},
+  '星间旅人':{icon:'fa-globe',tiers:[2,4,6],bonus:[{dmgMul:.12},{dmgMul:.28},{dmgMul:.5}],desc:'全队增益'},
+  '战技点':{icon:'fa-bolt',tiers:[2,4,6],bonus:[{dmgMul:.12,spdMul:.1},{dmgMul:.24,spdMul:.2},{dmgMul:.4,spdMul:.35}],desc:'伤害速度'},
+  '盛会之星':{icon:'fa-masks-theater',tiers:[2,3,4],bonus:[{dmgMul:.15},{dmgMul:.3},{dmgMul:.5}],desc:'巨星'},
+  '能量':{icon:'fa-charging-station',tiers:[3,5,7],bonus:[{dmgMul:.15},{dmgMul:.35},{dmgMul:.6}],desc:'终结技'},
+};
+const ENEMY_NAMES=['异星兽','虚数卫兵','裂界造物','星核猎影','银鬃铁卫','反物质军团','深渊凝视者','记忆域迷因'];
+const CC=['','var(--cost1)','var(--cost2)','var(--cost3)','var(--cost4)','var(--cost5)'];
+const CN=['','银','绿','蓝','紫','金'];
+const EQUIP_DB=[
+  {id:'sword1',name:'简易之剑',type:'weapon',tier:1,stats:{atk:15},color:'var(--red)'},
+  {id:'shield1',name:'简易之盾',type:'shield',tier:1,stats:{hp:200},color:'var(--ice)'},
+  {id:'ring1',name:'简易之戒',type:'ring',tier:1,stats:{dmgMul:.05},color:'var(--cost4)'},
+  {id:'boots1',name:'简易之靴',type:'boots',tier:1,stats:{spd:8},color:'var(--green)'},
+  {id:'sword2',name:'精炼之剑',type:'weapon',tier:2,stats:{atk:40,dmgMul:.05},from:'sword1',color:'var(--red)'},
+  {id:'shield2',name:'精炼之盾',type:'shield',tier:2,stats:{hp:500,dmgReduce:.05},from:'shield1',color:'var(--ice)'},
+  {id:'ring2',name:'精炼之戒',type:'ring',tier:2,stats:{dmgMul:.12,critRate:.05},from:'ring1',color:'var(--cost4)'},
+  {id:'boots2',name:'精炼之靴',type:'boots',tier:2,stats:{spd:20,spdMul:.05},from:'boots1',color:'var(--green)'},
+  {id:'sword3',name:'星徽之剑',type:'weapon',tier:3,stats:{atk:80,dmgMul:.12},from:'sword2',color:'var(--gold)'},
+  {id:'shield3',name:'星徽之盾',type:'shield',tier:3,stats:{hp:1000,dmgReduce:.12},from:'shield2',color:'var(--gold)'},
+  {id:'ring3',name:'星徽之戒',type:'ring',tier:3,stats:{dmgMul:.2,critRate:.1},from:'ring2',color:'var(--gold)'},
+  {id:'boots3',name:'星徽之靴',type:'boots',tier:3,stats:{spd:35,spdMul:.1},from:'boots2',color:'var(--gold)'},
+  {id:'recruit5',name:'五星招募卡',type:'special',tier:0,stats:{},color:'var(--gold)'},
+];
+
+let state={},uidC=0,battleRunning=false,dragInfo=null,battleState={};
+function makeUID(){return++uidC}
+function getCharBase(id){return CHAR_DATA.find(c=>c.id===id)}
+function getEquipBase(id){return EQUIP_DB.find(e=>e.id===id)}
+function getSellPrice(c){const b=getCharBase(c.id);return b.cost*c.star-c.star+1}
+// 升级所需经验 = 等级 * 4
+function expToNext(lv){return lv<10?lv*4:999}
+// 最大可出战人口
+function maxPop(){return state.level}
+
+function initState(){
+  state={gold:10,hp:30,node:1,maxNodes:18,streak:0,phase:'prep',
+    level:2,exp:0,
+    bench:[],field:new Array(10).fill(null),// 0-3前排, 4-9后排
+    shop:[],equips:[],crystals:[]};
+}
+
+/* 羁绊 - 只算场上的 */
+function calcBonds(){
+  const ct={};state.field.filter(Boolean).forEach(c=>{getCharBase(c.id).bonds.forEach(b=>{ct[b]=(ct[b]||0)+1})});
+  const ac={};Object.entries(ct).forEach(([b,n])=>{const d=BOND_DATA[b];if(!d)return;let t=-1;for(let i=d.tiers.length-1;i>=0;i--)if(n>=d.tiers[i]){t=i;break}ac[b]={count:n,tier:t,data:d}});return ac;
+}
+function sumBonuses(bonds){
+  const s={dmgMul:0,atkMul:0,hpMul:0,spdMul:0,critRate:0,dmgReduce:0,dotDmg:0,healMul:0,goldPerBattle:0};
+  Object.values(bonds).forEach(b=>{if(b.tier>=0&&b.data.bonus[b.tier])Object.entries(b.data.bonus[b.tier]).forEach(([k,v])=>{s[k]=(s[k]||0)+v})});return s;
+}
+
+/* 升级 */
+function buyExp(){
+  if(state.level>=10){showToast('已满级','info');return}
+  if(state.gold<4){showToast('金币不足','error');return}
+  state.gold-=4;state.exp+=4;
+  while(state.exp>=expToNext(state.level)&&state.level<10){
+    state.exp-=expToNext(state.level);state.level++;
+    showToast(`升级! 等级 ${state.level}，人口 ${state.level}`,'success');
+  }
+  if(state.level>=10)state.exp=0;
+  renderAll();
+}
+
+/* 商店 - 概率随等级变化 */
+function getShopWeights(){
+  const lv=state.level;
+  // [1费,2费,3费,4费,5费]
+  return [Math.max(5,70-lv*7), Math.max(5,25+lv*1-lv*2), Math.max(0,5+lv*3), Math.max(0,lv*2-2), Math.max(0,lv-3)];
+}
+function genShop(){
+  const sh=[];const ws=getShopWeights();
+  for(let i=0;i<5;i++){
+    const pool=CHAR_DATA;const weights=pool.map(c=>ws[c.cost-1]||1);
+    const t=weights.reduce((a,b)=>a+b,0);let r=Math.random()*t,p=pool[0];
+    for(let j=0;j<pool.length;j++){r-=weights[j];if(r<=0){p=pool[j];break}}
+    sh.push({id:p.id,sold:false});
+  }return sh;
+}
+function refreshShop(){if(battleRunning)return;if(state.gold<2){showToast('金币不足','error');return}state.gold-=2;state.shop=genShop();renderAll()}
+
+function buyChar(si){
+  if(battleRunning)return;const it=state.shop[si];if(!it||it.sold)return;const base=getCharBase(it.id);
+  if(state.gold<base.cost){showToast('金币不足','error');return}
+  state.gold-=base.cost;it.sold=true;
+  // 三合一：场上+备战席共3个同id同星级→升星，消耗2个旧角色，新角色也不加入
+  let merged=false;
+  const allSame=[...state.field.filter(c=>c&&c.id===it.id),...state.bench.filter(c=>c.id===it.id)];
+  const byStar={};allSame.forEach(c=>{const s=c.star;if(!byStar[s])byStar[s]=[];byStar[s].push(c)});
+  for(const[star,chars]of Object.entries(byStar)){
+    if(chars.length>=2&&!merged){
+      const keep=chars[0];keep.star++;
+      const rm=chars[1];let bi=state.bench.indexOf(rm);if(bi>=0)state.bench.splice(bi,1);else{let fi=state.field.indexOf(rm);if(fi>=0)state.field[fi]=null}
+      showToast(`${base.name} 三合一升至 ${keep.star} 星!`,'success');merged=true;
+    }
+  }
+  if(!merged)state.bench.push({uid:makeUID(),id:it.id,star:1,equips:[]});
+  renderAll();
+}
+
+function hasDupOnField(charId,exIdx){const base=getCharBase(charId);for(let i=0;i<10;i++){if(i===exIdx)continue;const c=state.field[i];if(c&&getCharBase(c.id).name===base.name)return true}return false}
+function countFieldChars(){return state.field.filter(Boolean).length}
+
+function moveChar(sT,sI,dT,dI){
+  const sC=sT==='field'?state.field[sI]:state.bench[sI];if(!sC)return;
+  const dC=dT==='field'?state.field[dI]:dI>=0&&dI<state.bench.length?state.bench[dI]:null;
+  if(dT==='field'&&!dC){
+    if(hasDupOnField(sC.id,dI)){showToast('同名角色不可上阵','error');return}
+    if(countFieldChars()>=maxPop()&&sT!=='field'){showToast(`人口已满 (${maxPop()})，请先升级`,'error');return}
+  }
+  if(sT==='field')state.field[sI]=dC;else{if(dC)state.bench[sI]=dC;else state.bench.splice(sI,1)}
+  if(dT==='field')state.field[dI]=sC;else{if(!dC)state.bench.push(sC);else state.bench[dI]=sC}
+  if(sT==='bench'&&dT==='bench'&&!dC){state.bench.pop();state.bench.splice(sI,1);state.bench.push(sC)}
+  renderAll();
+}
+function sellChar(sT,sI){
+  const c=sT==='field'?state.field[sI]:state.bench[sI];if(!c)return;state.gold+=getSellPrice(c);
+  if(c.equips)c.equips.forEach(eid=>state.equips.push(eid));
+  if(sT==='field')state.field[sI]=null;else state.bench.splice(sI,1);
+  showToast(`出售 ${getCharBase(c.id).name} +${getSellPrice(c)}💰`,'info');renderAll();
+}
+
+/* 装备 */
+function addEquip(id){state.equips.push(id);renderAll()}
+function equipToChar(char,eid){if(!char.equips)char.equips=[];if(char.equips.length>=3){showToast('装备栏满','error');return}char.equips.push(eid);const i=state.equips.indexOf(eid);if(i>=0)state.equips.splice(i,1);renderAll()}
+function tryMergeEquip(eid1,eid2){
+  const e1=getEquipBase(eid1),e2=getEquipBase(eid2);if(!e1||!e2||e1.id!==e2.id)return false;
+  const adv=EQUIP_DB.find(e=>e.from===e1.id);if(!adv)return false;
+  let r=0;state.equips=state.equips.filter(e=>{if(e===eid1&&r<1){r++;return false}return true});
+  r=0;state.equips=state.equips.filter(e=>{if(e===eid2&&r<1){r++;return false}return true});
+  state.equips.push(adv.id);showToast(`合成 ${adv.name}!`,'success');renderAll();return true;
+}
+
+/* 晶矿 */
+function addCrystal(t){state.crystals.push({id:makeUID(),type:t,x:15+Math.random()*130,y:15+Math.random()*140,opened:false});renderCrystals()}
+function openCrystal(cry){
+  if(cry.opened)return;cry.opened=true;let rw='';
+  const t=cry.type;
+  if(t==='silver'){state.gold+=1;rw='+1💰'}
+  else if(t==='blue'){if(Math.random()<.5){const cs=CHAR_DATA.filter(c=>c.cost===2||c.cost===3);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:1,equips:[]});rw=c.name}else{const se=['sword1','shield1','ring1','boots1'];const eid=se[Math.floor(Math.random()*se.length)];addEquip(eid);rw=getEquipBase(eid).name}}
+  else if(t==='gold'){if(Math.random()<.5){const cs=CHAR_DATA.filter(c=>c.cost===3||c.cost===4);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:2,equips:[]});rw=c.name+'★2'}else{addEquip('recruit5');rw='五星招募卡'}}
+  else{if(Math.random()<.5){const cs=CHAR_DATA.filter(c=>c.cost===5);const c=cs[Math.floor(Math.random()*cs.length)];if(state.bench.length<12)state.bench.push({uid:makeUID(),id:c.id,star:2,equips:[]});rw=c.name+'★2'}else{const se=['sword3','shield3','ring3','boots3'];addEquip(se[Math.floor(Math.random()*se.length)]);rw='星徽装备'}}
+  const area=document.getElementById('crystal-area');const rd=document.createElement('div');rd.className='crystal-reward';rd.textContent=rw;rd.style.left=cry.x+'px';rd.style.top=cry.y+'px';area.appendChild(rd);setTimeout(()=>rd.remove(),900);renderAll();
+}
+
+/* 拖拽 */
+function initDrag(e,sT,sI){
+  const c=sT==='field'?state.field[sI]:state.bench[sI];if(!c)return;e.preventDefault();
+  const ghost=document.createElement('div');ghost.className='drag-ghost';ghost.style.width='70px';ghost.style.height='88px';
+  ghost.innerHTML=buildCharMiniHTML(c);ghost.style.left=(e.clientX-35)+'px';ghost.style.top=(e.clientY-44)+'px';
+  document.body.appendChild(ghost);dragInfo={type:'char',srcType:sT,srcIdx:sI,char:c,ghost,price:getSellPrice(c)};
+  document.getElementById('sell-left').classList.add('visible');document.getElementById('sell-right').classList.add('visible');
+  document.getElementById('sell-price-left').textContent=dragInfo.price+'💰';document.getElementById('sell-price-right').textContent=dragInfo.price+'💰';
+  document.addEventListener('pointermove',onDragMove);document.addEventListener('pointerup',onDragEnd);
+}
+function initEquipDrag(e,idx){
+  e.preventDefault();const eid=state.equips[idx];const base=getEquipBase(eid);
+  const ghost=document.createElement('div');ghost.className='drag-ghost';ghost.style.width='40px';ghost.style.height='40px';ghost.style.background='var(--card)';
+  ghost.style.border='2px solid '+(base.color||'var(--border)');ghost.style.borderRadius='5px';ghost.style.display='flex';ghost.style.alignItems='center';ghost.style.justifyContent='center';
+  ghost.style.fontSize='.5rem';ghost.style.fontWeight='700';ghost.style.color=base.color||'var(--text)';ghost.textContent=base.name.substring(0,2);
+  ghost.style.left=(e.clientX-20)+'px';ghost.style.top=(e.clientY-20)+'px';document.body.appendChild(ghost);
+  dragInfo={type:'equip',srcIdx:idx,equipId:eid,ghost};document.addEventListener('pointermove',onDragMove);document.addEventListener('pointerup',onDragEnd);
+}
+function onDragMove(e){
+  if(!dragInfo)return;const g=dragInfo.ghost;const off=dragInfo.type==='char'?35:20;g.style.left=(e.clientX-off)+'px';g.style.top=(e.clientY-off)+'px';
+  g.style.display='none';const el=document.elementFromPoint(e.clientX,e.clientY);g.style.display='';
+  document.querySelectorAll('.slot.drag-over,.slot.dup-warn,.equip-slot.drag-over-equip').forEach(s=>s.classList.remove('drag-over','dup-warn','drag-over-equip'));
+  document.querySelectorAll('.sell-zone.drag-over').forEach(s=>s.classList.remove('drag-over'));if(!el)return;
+  if(dragInfo.type==='char'){const sz=el.closest('.sell-zone');if(sz){sz.classList.add('drag-over');return}const sl=el.closest('.slot');if(sl){const fI=sl.dataset.fieldIdx,bI=sl.dataset.benchIdx;if(fI!==undefined){const i=parseInt(fI);if(isSlotLocked(i))return;if(!state.field[i]&&hasDupOnField(dragInfo.char.id,i))sl.classList.add('dup-warn');else sl.classList.add('drag-over')}else if(bI!==undefined)sl.classList.add('drag-over')}}
+  else{const sl=el.closest('.slot');if(sl&&sl.classList.contains('filled'))sl.classList.add('drag-over');const es=el.closest('.equip-slot');if(es)es.classList.add('drag-over-equip')}
+}
+function onDragEnd(e){
+  if(!dragInfo)return;const g=dragInfo.ghost;g.style.display='none';const el=document.elementFromPoint(e.clientX,e.clientY);g.style.display='';
+  g.remove();document.querySelectorAll('.slot.drag-over,.slot.dup-warn,.equip-slot.drag-over-equip').forEach(s=>s.classList.remove('drag-over','dup-warn','drag-over-equip'));
+  document.querySelectorAll('.sell-zone.drag-over').forEach(s=>s.classList.remove('drag-over'));
+  document.getElementById('sell-left').classList.remove('visible');document.getElementById('sell-right').classList.remove('visible');
+  document.removeEventListener('pointermove',onDragMove);document.removeEventListener('pointerup',onDragEnd);
+  if(dragInfo.type==='char'){const sz=el?.closest('.sell-zone');if(sz){sellChar(dragInfo.srcType,dragInfo.srcIdx);dragInfo=null;return}const sl=el?.closest('.slot');if(sl){const fI=sl.dataset.fieldIdx,bI=sl.dataset.benchIdx;if(fI!==undefined)moveChar(dragInfo.srcType,dragInfo.srcIdx,'field',parseInt(fI));else if(bI!==undefined){const i=parseInt(bI);moveChar(dragInfo.srcType,dragInfo.srcIdx,'bench',i>=state.bench.length?-1:i)}}}
+  else if(dragInfo.type==='equip'){const sl=el?.closest('.slot');if(sl&&sl.classList.contains('filled')){const fI=sl.dataset.fieldIdx,bI=sl.dataset.benchIdx;let ch;if(fI!==undefined)ch=state.field[parseInt(fI)];else if(bI!==undefined)ch=state.bench[parseInt(bI)];if(ch){if(ch.equips&&ch.equips.length>=3)showToast('装备栏满','error');else{equipToChar(ch,dragInfo.equipId);showToast(`装备 ${getEquipBase(dragInfo.equipId).name}`,'info')}}}const es=el?.closest('.equip-slot');if(es){const tI=parseInt(es.dataset.equipIdx);if(tI!==dragInfo.srcIdx&&state.equips[tI]===dragInfo.equipId)tryMergeEquip(dragInfo.equipId,dragInfo.equipId)}}
+  dragInfo=null;renderAll();
+}
+
+function isSlotLocked(i){return countFieldChars()>=maxPop()&&!state.field[i]}
+
+/* 渲染 */
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function renderAll(){renderTopBar();renderBonds();renderLevel();renderField();renderBench();renderShop();renderEquips();renderCrystals();renderOverflowWarn()}
+function renderTopBar(){
+  document.getElementById('gold-display').textContent=state.gold;document.getElementById('hp-display').textContent=state.hp;document.getElementById('streak-display').textContent=state.streak;
+  const p=document.getElementById('node-progress');let h='';for(let i=1;i<=state.maxNodes;i++){const c=i<state.node?'completed':i===state.node?'current':(i<=2&&i>=state.node?'reward':'');h+=`<div class="node-dot ${c}" title="节点${i}${i<=2?' (奖励)':''}"></div>`}p.innerHTML=h;
+}
+function renderBonds(){
+  const bonds=calcBonds(),bar=document.getElementById('bonds-sidebar');let h='';
+  Object.entries(bonds).sort((a,b)=>(b[1].tier>=0?1:0)-(a[1].tier>=0?1:0)||b[1].count-a[1].count).forEach(([name,b])=>{
+    const isA=b.tier>=0,nextT=b.data.tiers.find(t=>t>b.count),tX=isA?`<span class="bond-tier">★${b.tier+1}</span>`:'',cT=nextT?`${b.count}/${nextT}`:`${b.count}MAX`;
+    h+=`<div class="bond-card ${isA?'active':''}"><div class="bond-name"><i class="fas ${b.data.icon}" style="color:${isA?'var(--gold)':'var(--muted)'}"></i>${name}${tX}</div><div class="bond-count">${cT}</div></div>`;
+  });bar.innerHTML=h||'<div style="color:var(--muted);font-size:.6rem;text-align:center;padding:.3rem">上阵角色激活羁绊</div>';
+}
+function renderLevel(){
+  const panel=document.getElementById('level-panel');
+  const nextExp=expToNext(state.level);const pct=state.level>=10?100:Math.min(100,Math.round(state.exp/nextExp*100));
+  const canBuy=state.gold>=4&&state.level<10;
+  panel.innerHTML=`
+    <div class="level-num">Lv${state.level}</div>
+    <div class="level-bar-outer">
+      <div class="level-bar-fill" style="height:${pct}%"></div>
+      <div class="level-bar-text">${pct}%</div>
+    </div>
+    <button class="level-btn" onclick="buyExp()" ${canBuy?'':'disabled'}>4💰<br>升4<br>经验</button>
+    <div class="level-pop">人口 ${countFieldChars()}/${maxPop()}</div>
+    <div class="level-sub">${state.level<10?`还需${nextExp-state.exp}经验`:'已满级'}</div>`;
+}
+function buildCharMiniHTML(c){
+  const b=getCharBase(c.id),cc=CC[b.cost],stars='★'.repeat(c.star),sm=c.star===1?1:c.star===2?1.8:3.2;
+  const eqH=(c.equips||[]).map(eid=>{const eb=getEquipBase(eid);return`<div class="equip-icon" style="background:${eb?eb.color:'var(--muted)'}" title="${eb?eb.name:''}"></div>`}).join('');
+  return`<div class="char-mini"><div class="cost-dot" style="background:${cc};border-color:${cc}"></div><div class="char-name" style="color:${cc}">${b.name}</div><div class="char-stars">${stars}</div><div class="char-bonds">${b.bonds.join('·')}</div><div class="char-stats">A${Math.round(b.atk*sm)} H${Math.round(b.hp*sm)}</div><div class="equip-icons">${eqH}</div></div>`;
+}
+function renderField(){
+  const fR=document.getElementById('front-row'),bR=document.getElementById('back-row');let fh='',bh='';
+  for(let i=0;i<4;i++){const c=state.field[i];const locked=isSlotLocked(i);
+    if(c){const b=getCharBase(c.id);fh+=`<div class="slot filled" data-field-idx="${i}" style="border-color:${CC[b.cost]}">${buildCharMiniHTML(c)}</div>`}
+    else fh+=`<div class="slot ${locked?'locked':''}" data-field-idx="${i}"><i class="fas ${locked?'fa-lock':'fa-plus'}" style="color:var(--border);font-size:.8rem"></i></div>`}
+  for(let i=4;i<10;i++){const c=state.field[i];const locked=isSlotLocked(i);
+    if(c){const b=getCharBase(c.id);bh+=`<div class="slot filled" data-field-idx="${i}" style="border-color:${CC[b.cost]}">${buildCharMiniHTML(c)}</div>`}
+    else bh+=`<div class="slot ${locked?'locked':''}" data-field-idx="${i}"><i class="fas ${locked?'fa-lock':'fa-plus'}" style="color:var(--border);font-size:.8rem"></i></div>`}
+  fR.innerHTML=fh;bR.innerHTML=bh;
+  document.querySelectorAll('.slot.filled .char-mini').forEach(el=>{const s=el.closest('.slot'),i=parseInt(s.dataset.fieldIdx);el.addEventListener('pointerdown',e=>initDrag(e,'field',i))});
+  document.querySelectorAll('.slot:not(.filled):not(.locked)').forEach(s=>s.addEventListener('click',()=>{const i=parseInt(s.dataset.fieldIdx);autoPlace(i)}));
+}
+function renderBench(){
+  const br=document.getElementById('bench-row');const ov=state.bench.length>9;let h='';
+  state.bench.forEach((c,i)=>{const b=getCharBase(c.id);h+=`<div class="slot filled ${ov?'bench-overflow':''}" data-bench-idx="${i}" style="border-color:${CC[b.cost]}">${buildCharMiniHTML(c)}</div>`});
+  if(!ov)for(let i=0;i<9-state.bench.length;i++)h+=`<div class="slot" data-bench-idx="${state.bench.length+i}"><i class="fas fa-chair" style="color:var(--border);font-size:.6rem"></i></div>`;
+  br.innerHTML=h;
+  document.querySelectorAll('#bench-row .slot.filled .char-mini').forEach(el=>{const s=el.closest('.slot'),i=parseInt(s.dataset.benchIdx);el.addEventListener('pointerdown',e=>initDrag(e,'bench',i))});
+}
+function renderOverflowWarn(){document.getElementById('overflow-warn').innerHTML=state.bench.length>9?'<div class="overflow-warn"><i class="fas fa-triangle-exclamation"></i> 备战席已满! 请出售角色</div>':''}
+function renderShop(){
+  const el=document.getElementById('shop-cards');let h='';
+  state.shop.forEach((it,i)=>{if(it.sold)h+=`<div class="shop-card sold"></div>`;else{const b=getCharBase(it.id),cc=CC[b.cost];h+=`<div class="shop-card" onclick="buyChar(${i})" style="border-color:${cc}"><div style="font-size:.5rem;color:${cc};font-weight:900">${CN[b.cost]}${b.cost}费</div><div style="font-size:.7rem;font-weight:700;color:${cc}">${b.name}</div><div style="font-size:.42rem;color:var(--muted)">${b.bonds.join('·')}</div><div style="font-size:.55rem;color:var(--gold);font-weight:700"><i class="fas fa-coins"></i> ${b.cost}</div></div>`}});
+  el.innerHTML=h;document.getElementById('refresh-btn').disabled=state.gold<2;
+}
+function renderEquips(){
+  const g=document.getElementById('equip-grid');let h='';
+  state.equips.forEach((eid,i)=>{const b=getEquipBase(eid);if(!b)return;const tc=b.tier===1?'var(--muted)':b.tier===2?'var(--cost3)':b.tier===3?'var(--gold)':'var(--cost5)';
+    h+=`<div class="equip-slot" data-equip-idx="${i}" style="border-color:${b.color||'var(--border)'}"><span style="color:${b.color};font-size:.48rem;font-weight:700">${b.name.substring(0,2)}</span><span class="equip-tier" style="color:${tc}">${b.tier>0?'T'+b.tier:'★'}</span></div>`});
+  g.innerHTML=h;document.querySelectorAll('.equip-slot').forEach(el=>{const i=parseInt(el.dataset.equipIdx);el.addEventListener('pointerdown',e=>initEquipDrag(e,i))});
+}
+function renderCrystals(){
+  const a=document.getElementById('crystal-area');let h='';
+  state.crystals.forEach(c=>{if(c.opened)return;h+=`<div class="crystal crystal-${c.type}" style="left:${c.x}px;top:${c.y}px" data-crystal-id="${c.id}">${c.type==='rainbow'?'✦':c.type==='gold'?'◆':c.type==='blue'?'●':'○'}</div>`});
+  a.innerHTML=h;
+}
+function autoPlace(fi){if(!state.bench.length)return;if(isSlotLocked(fi)){showToast(`人口已满 (${maxPop()})`,'error');return}const isB=fi>=4;const p=state.bench.findIndex(c=>{const b=getCharBase(c.id);return isB?b.pos==='back':b.pos==='front'});const i=p>=0?p:0;if(hasDupOnField(state.bench[i].id,fi)){showToast('同名不可上阵','error');return}state.field[fi]=state.bench[i];state.bench.splice(i,1);renderAll()}
+
+/* 晶矿鼠标划过 */
+(function(){let md=false;document.addEventListener('pointerdown',()=>md=true);document.addEventListener('pointerup',()=>md=false);
+document.addEventListener('pointermove',e=>{if(!md)return;document.elementsFromPoint(e.clientX,e.clientY).forEach(el=>{if(el.classList.contains('crystal')&&!el.classList.contains('opening')){const cid=parseInt(el.dataset.crystalId);const cry=state.crystals.find(c=>c.id===cid);if(cry&&!cry.opened){el.classList.add('opening');setTimeout(()=>openCrystal(cry),400)}}})});
+})();
+
+/* ===== 战斗 ===== */
+function getSkillType(id){const bonds=getCharBase(id).bonds;const prio=['持续伤害','击破','治疗','追击','护盾','群攻','能量','战技点'];for(const p of prio)if(bonds.includes(p))return p;return'通用'}
+function calcStats(char,bonuses){
+  const base=getCharBase(char.id),sm=char.star===1?1:char.star===2?1.8:3.2;
+  let atk=base.atk*sm,hp=base.hp*sm,spd=base.spd,dmgMul=0,critRate=.05,dmgReduce=0,dotDmg=0,healMul=0;
+  if(bonuses){atk*=(1+(bonuses.atkMul||0));hp*=(1+(bonuses.hpMul||0));spd*=(1+(bonuses.spdMul||0));dmgMul+=(bonuses.dmgMul||0);critRate+=(bonuses.critRate||0);dmgReduce+=(bonuses.dmgReduce||0);dotDmg+=(bonuses.dotDmg||0);healMul+=(bonuses.healMul||0)}
+  (char.equips||[]).forEach(eid=>{const eb=getEquipBase(eid);if(eb&&eb.stats)Object.entries(eb.stats).forEach(([k,v])=>{if(k==='atk')atk+=v;else if(k==='hp')hp+=v;else if(k==='spd')spd+=v;else if(k==='dmgMul')dmgMul+=v;else if(k==='critRate')critRate+=v;else if(k==='dmgReduce')dmgReduce+=v;else if(k==='spdMul')spd*=(1+v)})});
+  return{atk:Math.round(atk),hp:Math.round(hp),maxHp:Math.round(hp),spd:Math.round(spd),dmgMul,critRate,dmgReduce,dotDmg,healMul,name:base.name,pos:base.pos,bonds:base.bonds,cost:base.cost,star:char.star,uid:char.uid,id:char.id,elem:base.elem,skillType:getSkillType(char.id),energy:0,maxEnergy:100,shield:0,actionCount:0,healBuff:false,shieldDmgReduce:false};
+}
+function genEnemyTeam(){
+  const n=Math.min(3+Math.floor(state.node/3),8),en=[];const ns=0.6+state.node*0.25;const isR=state.node<=2;
+  for(let i=0;i<n;i++){const base=CHAR_DATA[Math.floor(Math.random()*CHAR_DATA.length)];const star=Math.min(3,1+Math.floor(state.node/6)),sm=star===1?1:star===2?1.6:2.5;
+    const weaks=[];const pool=[...ELEMS];for(let j=0;j<3;j++){const idx=Math.floor(Math.random()*pool.length);weaks.push(pool.splice(idx,1)[0])}
+    const tough=30+state.node*5;let hp=Math.round(base.hp*sm*ns*(0.85+Math.random()*0.3));if(isR)hp=Math.round(hp*0.01);
+    en.push({uid:makeUID(),id:base.id,name:ENEMY_NAMES[Math.floor(Math.random()*ENEMY_NAMES.length)],atk:Math.round(base.atk*sm*ns*(0.85+Math.random()*0.3)),hp,maxHp:hp,spd:base.spd,dmgMul:0.1*Math.floor(state.node/4),critRate:.05,dmgReduce:0,dotDmg:0,healMul:0,star,isEnemy:true,bonds:[],cost:base.cost,pos:base.pos,elem:base.elem||ELEMS[Math.floor(Math.random()*ELEMS.length)],weaknesses:weaks,toughness:tough,maxToughness:tough,dots:0,broken:false});
+  }return en;
+}
+
+function spawnFX(x,y,text,cls){const f=document.getElementById('fx-container');const el=document.createElement('div');el.className='fx '+cls;el.textContent=text;el.style.left=x+'px';el.style.top=y+'px';f.appendChild(el);setTimeout(()=>el.remove(),1000)}
+function flashElem(elem,cls){const fl=document.createElement('div');fl.className='fx-flash fx-flash-'+cls;elem.style.position='relative';elem.appendChild(fl);setTimeout(()=>fl.remove(),400)}
+function flashTarget(uid,cls){const el=document.querySelector(`.battle-char[data-uid="${uid}"]`);if(el)flashElem(el,cls)}
+
+async function startBattle(){
+  if(battleRunning)return;if(state.bench.length>9){showToast('备战席溢出','error');return}
+  const fc=state.field.filter(Boolean);if(!fc.length){showToast('请先上场角色','error');return}
+  battleRunning=true;const bonds=calcBonds(),bonuses=sumBonuses(bonds);
+  const allies=state.field.map((c,i)=>{if(!c)return null;const s=calcStats(c,bonuses);s.fieldIdx=i;s.isEnemy=false;return s}).filter(Boolean);
+  const enemies=genEnemyTeam();
+  let maxSP=5;if(bonds['战技点']&&bonds['战技点'].tier>=0)maxSP+=2;
+  battleState={sp:3,maxSP,actionCounter:0,killCount:0};
+  showScreen('battle-screen');document.getElementById('battle-node').textContent=state.node+(state.node<=2?' (奖励)':'');
+  const logEl=document.getElementById('battle-log');logEl.innerHTML='';
+  Object.entries(bonds).forEach(([name,b])=>{if(b.tier>=0)addLog(logEl,`<span class="log-bond">羁绊激活：${name}</span>`)});
+  let round=0;
+  while(allies.some(a=>a.hp>0)&&enemies.some(e=>e.hp>0)&&round<30){
+    round++;addLog(logEl,`<br><b>— 回合 ${round} —</b>`);
+    for(const u of allies.filter(a=>a.hp>0&&a.energy>=a.maxEnergy))await execUlt(u,allies,enemies,logEl);
+    const units=[...allies.filter(a=>a.hp>0),...enemies.filter(e=>e.hp>0)].sort((a,b)=>b.spd-a.spd);
+    for(const unit of units){if(unit.hp<=0)continue;battleState.actionCounter++;renderBattle(allies,enemies,unit.uid);await sleep(280);
+      if(unit.isEnemy)await enemyAction(unit,allies,enemies,logEl);else await allyAction(unit,allies,enemies,logEl);
+      for(const u of allies.filter(a=>a.hp>0&&a.energy>=a.maxEnergy))await execUlt(u,allies,enemies,logEl);
+      enemies.filter(e=>e.hp>0&&e.dots>0).forEach(e=>{const dd=Math.round(e.dots*8);e.hp=Math.max(0,e.hp-dd);e.dots=Math.ceil(e.dots/2);addLog(logEl,`<span class="log-dot">DoT：${e.name} -${dd}</span>`)});
+      enemies.filter(e=>e.hp<=0&&!e._ct).forEach(e=>{e._ct=true;battleState.killCount++;const r=Math.random();addCrystal(r<.4?'silver':r<.75?'blue':r<.93?'gold':'rainbow')});
+      renderBattle(allies,enemies);await sleep(180);
+    }
+  }
+  await sleep(400);const won=allies.some(a=>a.hp>0);showResult(won,allies,enemies,bonuses);battleRunning=false;
+}
+
+async function allyAction(unit,allies,enemies,logEl){
+  const targets=enemies.filter(e=>e.hp>0);if(!targets.length)return;const isBack=unit.pos==='back';
+  if(unit.skillType==='追击'&&battleState.actionCounter-unit.actionCount>=6){unit.actionCount=battleState.actionCounter;await execSkill(unit,targets,allies,enemies,logEl);return}
+  if(isBack){await execSkill(unit,targets,allies,enemies,logEl)}
+  else{const spP=0.3+0.14*battleState.sp;const useSk=battleState.sp>0&&Math.random()<spP;
+    if(useSk){battleState.sp--;addLog(logEl,`<span class="log-sp">消耗1SP (剩${battleState.sp})</span>`);await execSkill(unit,targets,allies,enemies,logEl)}
+    else{await execNormal(unit,targets,allies,enemies,logEl);battleState.sp=Math.min(battleState.maxSP,battleState.sp+1);addLog(logEl,`<span class="log-sp">普攻+1SP (${battleState.sp})</span>`)}}
+  if(unit.skillType==='持续伤害'&&targets.length){const t=targets[Math.floor(Math.random()*targets.length)];t.dots+=1;addLog(logEl,`<span class="log-dot">${unit.name}天赋 +1DoT</span>`)}
+}
+
+async function execNormal(unit,targets,allies,enemies,logEl){
+  unit.energy=Math.min(unit.maxEnergy,unit.energy+Math.round(unit.maxEnergy*0.1));
+  const st=unit.skillType,t=pickT(targets);
+  if(st==='持续伤害'){dealDmg(unit,t,1);t.dots+=3;addLog(logEl,`${unit.name}普攻→${t.name} +3DoT`);flashTarget(t.uid,'red')}
+  else if(st==='击破'){dealDmg(unit,t,1);reduceTough(unit,t,15,true);addLog(logEl,`${unit.name}普攻→${t.name} 削韧`);flashTarget(t.uid,'blue')}
+  else if(st==='治疗'){const w=allies.filter(a=>a.hp>0&&a.hp<a.maxHp).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];if(w){const h=Math.round(unit.atk*0.2*(1+unit.healMul)*(w.healBuff?1.5:1));w.hp=Math.min(w.maxHp,w.hp+h);addLog(logEl,`<span class="log-heal">${unit.name}治疗 ${w.name} +${h}</span>`);flashTarget(w.uid,'green')}else{dealDmg(unit,t,1);flashTarget(t.uid,'red')}}
+  else if(st==='护盾'){const w=allies.filter(a=>a.hp>0).sort((a,b)=>a.shield/a.maxHp-b.shield/b.maxHp)[0]||allies.find(a=>a.hp>0);if(w){const s=Math.round(unit.atk*0.2);w.shield=Math.min(w.maxHp,w.shield+s);addLog(logEl,`<span class="log-shield">${unit.name}护盾 ${w.name} +${s}</span>`);flashTarget(w.uid,'white')}else{dealDmg(unit,t,1);flashTarget(t.uid,'red')}}
+  else{dealDmg(unit,t,1);addLog(logEl,`${unit.name}普攻→${t.name}`);flashTarget(t.uid,'red')}
+}
+async function execSkill(unit,targets,allies,enemies,logEl){
+  unit.energy=Math.min(unit.maxEnergy,unit.energy+Math.round(unit.maxEnergy*0.2));
+  const st=unit.skillType;
+  if(st==='持续伤害'){targets.forEach(t=>{dealDmg(unit,t,1.2);t.dots+=3;flashTarget(t.uid,'purple')});addLog(logEl,`<span class="log-dot">${unit.name}战技 全体+3DoT</span>`)}
+  else if(st==='击破'){targets.forEach(t=>{dealDmg(unit,t,1.2);reduceTough(unit,t,20,true);flashTarget(t.uid,'blue')});addLog(logEl,`${unit.name}战技 全体削韧`)}
+  else if(st==='治疗'){allies.filter(a=>a.hp>0).forEach(a=>{const h=Math.round(unit.atk*0.15*(1+unit.healMul)*(a.healBuff?1.5:1));a.hp=Math.min(a.maxHp,a.hp+h);flashTarget(a.uid,'green')});addLog(logEl,`<span class="log-heal">${unit.name}战技 全体治疗</span>`)}
+  else if(st==='追击'){targets.forEach(t=>{dealDmg(unit,t,1.5);flashTarget(t.uid,'red')});addLog(logEl,`${unit.name}战技 追击全体`)}
+  else if(st==='护盾'){allies.filter(a=>a.hp>0).forEach(a=>{const s=Math.round(unit.atk*0.15);a.shield=Math.min(a.maxHp,a.shield+s);flashTarget(a.uid,'white')});addLog(logEl,`<span class="log-shield">${unit.name}战技 全体护盾</span>`)}
+  else if(st==='群攻'){targets.forEach(t=>{dealDmg(unit,t,1.6);flashTarget(t.uid,'red')});addLog(logEl,`${unit.name}战技 群攻`)}
+  else if(st==='能量'){const m=pickT(targets);dealDmg(unit,m,2.2);flashTarget(m.uid,'red');targets.filter(t=>t!==m).slice(0,2).forEach(t=>{dealDmg(unit,t,1.0);flashTarget(t.uid,'red')});allies.filter(a=>a.hp>0).forEach(a=>a.energy=Math.min(a.maxEnergy,a.energy+Math.round(a.maxEnergy*0.1)));addLog(logEl,`${unit.name}战技 扩散+回能10%`)}
+  else if(st==='战技点'){const cost=battleState.sp;const mul=1+cost*0.8;targets.forEach(t=>{dealDmg(unit,t,mul);flashTarget(t.uid,'red')});addLog(logEl,`<span class="log-sp">${unit.name}战技 耗${cost}SP ${mul.toFixed(1)}x</span>`);battleState.sp=0}
+  else{const m=pickT(targets);dealDmg(unit,m,1.8);flashTarget(m.uid,'red');targets.filter(t=>t!==m).slice(0,2).forEach(t=>{dealDmg(unit,t,1.0);flashTarget(t.uid,'red')});addLog(logEl,`${unit.name}战技 扩散`)}
+}
+async function execUlt(unit,allies,enemies,logEl){
+  unit.energy=0;const targets=enemies.filter(e=>e.hp>0);if(!targets.length)return;
+  addLog(logEl,`<b style="color:var(--gold)">${unit.name} 终结技!</b>`);flashTarget(unit.uid,'gold');renderBattle(allies,enemies,unit.uid);await sleep(300);
+  const st=unit.skillType;
+  if(st==='持续伤害'){targets.forEach(t=>{const dd=Math.round(t.dots*15*(1+unit.dmgMul));t.hp=Math.max(0,t.hp-dd);flashTarget(t.uid,'purple')});addLog(logEl,`<span class="log-dot">引爆DoT!</span>`)}
+  else if(st==='击破'){targets.forEach(t=>{dealDmg(unit,t,3.0);flashTarget(t.uid,'blue')});addLog(logEl,`${unit.name}大招 强力群攻`)}
+  else if(st==='治疗'){allies.filter(a=>a.hp>0).forEach(a=>a.healBuff=true);addLog(logEl,`<span class="log-heal">被治疗量提升!</span>`)}
+  else if(st==='追击'){unit.dmgMul+=0.5;for(let i=0;i<3;i++){targets.forEach(t=>{dealDmg(unit,t,1.5);flashTarget(t.uid,'red')});addLog(logEl,`${unit.name}连击#${i+1}`);renderBattle(allies,enemies,unit.uid);await sleep(200)}unit.dmgMul-=0.5}
+  else if(st==='护盾'){allies.filter(a=>a.hp>0).forEach(a=>a.shieldDmgReduce=true);addLog(logEl,`<span class="log-shield">护盾减伤!</span>`)}
+  else if(st==='群攻'){unit.dmgMul+=0.5;targets.forEach(t=>{dealDmg(unit,t,2.5);flashTarget(t.uid,'red')});unit.dmgMul-=0.5;addLog(logEl,`${unit.name}大招 提伤群攻`)}
+  else if(st==='能量'){for(let i=0;i<20;i++){const t=targets[Math.floor(Math.random()*targets.length)];dealDmg(unit,t,0.6);if(i%5===0){flashTarget(t.uid,'gold');renderBattle(allies,enemies,unit.uid);await sleep(80)}}addLog(logEl,`${unit.name}大招 20次弹射!`)}
+  else if(st==='战技点'){const m=pickT(targets);dealDmg(unit,m,3.0);flashTarget(m.uid,'red');targets.filter(t=>t!==m).slice(0,2).forEach(t=>{dealDmg(unit,t,1.5);flashTarget(t.uid,'red')});battleState.sp=Math.min(battleState.maxSP,battleState.sp+3);addLog(logEl,`<span class="log-sp">${unit.name}大招 扩散+3SP!</span>`)}
+  else{targets.forEach(t=>{dealDmg(unit,t,2.2);flashTarget(t.uid,'red')});addLog(logEl,`${unit.name}大招 群攻`)}
+  unit.energy=Math.min(unit.maxEnergy,unit.energy+Math.round(unit.maxEnergy*0.1));renderBattle(allies,enemies);await sleep(200);
+}
+async function enemyAction(unit,allies,enemies,logEl){
+  const ts=allies.filter(a=>a.hp>0&&a.pos==='front');if(!ts.length)return;const t=pickT(ts);
+  let dmg=unit.atk*(1+unit.dmgMul)*(0.9+Math.random()*0.2);if(Math.random()<unit.critRate)dmg*=1.8;
+  if(t.shield>0){const ab=Math.min(t.shield,dmg);t.shield-=ab;dmg-=ab;if(t.shieldDmgReduce){dmg*=0.5;t.shieldDmgReduce=false}}
+  dmg*=(1-Math.min(t.dmgReduce,0.8));dmg=Math.round(Math.max(dmg,1));t.hp=Math.max(0,t.hp-dmg);t.energy=Math.min(t.maxEnergy,t.energy+Math.round(t.maxEnergy*0.1));
+  addLog(logEl,`<span class="log-dmg">${unit.name}→${t.name}：${dmg}</span>`);flashTarget(t.uid,'red');
+}
+function dealDmg(atk,tgt,mul){if(!tgt||tgt.hp<=0)return 0;let dmg=atk.atk*mul*(1+atk.dmgMul)*(0.9+Math.random()*0.2);const crit=Math.random()<atk.critRate;if(crit)dmg*=1.8;if(!atk.isEnemy)reduceTough(atk,tgt,10,false);const res=tgt.broken?0:0.2;dmg*=(1-res);if(tgt.shield>0){const ab=Math.min(tgt.shield,dmg);tgt.shield-=ab;dmg-=ab;if(tgt.shieldDmgReduce){dmg*=0.5;tgt.shieldDmgReduce=false}}dmg=Math.round(Math.max(dmg,1));tgt.hp=Math.max(0,tgt.hp-dmg);if(!atk.isEnemy)atk.energy=Math.min(atk.maxEnergy,atk.energy+5);return dmg}
+function reduceTough(atk,tgt,amt,ig){if(tgt.broken)return;if(ig)tgt.toughness=Math.max(0,tgt.toughness-amt);else if(tgt.weaknesses.includes(atk.elem))tgt.toughness=Math.max(0,tgt.toughness-amt);if(tgt.toughness<=0&&!tgt.broken){tgt.broken=true;const bd=Math.round(atk.atk*1.5*(1+atk.dmgMul));tgt.hp=Math.max(0,tgt.hp-bd);addLog(document.getElementById('battle-log'),`<span class="log-break">击破! ${tgt.name} -${bd}</span>`);flashTarget(tgt.uid,'blue')}}
+function pickT(ts){const f=ts.filter(t=>t.pos==='front');return f.length?f[Math.floor(Math.random()*f.length)]:ts[Math.floor(Math.random()*ts.length)]}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function addLog(el,html){if(!el)return;el.innerHTML+=`<div>${html}</div>`;el.scrollTop=el.scrollHeight}
+
+function renderBattle(allies,enemies,actUid){
+  const spEl=document.getElementById('sp-area');let spH='';for(let i=0;i<battleState.maxSP;i++)spH+=`<div class="sp-dot ${i<battleState.sp?'filled':''}"></div>`;spEl.innerHTML=spH;
+  const rU=(u,ie)=>{const hpP=Math.max(0,u.hp/u.maxHp*100),hpC=hpP>60?'var(--green)':hpP>30?'var(--gold)':'var(--red)';const tP=u.maxToughness?Math.max(0,u.toughness/u.maxToughness*100):0;const shP=u.shield?Math.min(100,u.shield/u.maxHp*100):0;const eP=u.maxEnergy?Math.round(u.energy/u.maxEnergy*100):0;const act=u.uid===actUid?'acting':'',dead=u.hp<=0?'dead':'';const ec=ELEM_CSS[u.elem]||'var(--muted)';const bk=u.broken?'<span style="color:var(--red);font-size:.45rem">破</span>':'';const dt=u.dots>0?`<span style="color:var(--cost4);font-size:.45rem">D${u.dots}</span>`:'';const sd=u.shield>0?`<span style="color:#eee;font-size:.45rem">🛡${Math.round(u.shield)}</span>`:'';const br=u.pos==='back'&&!ie?'back-row':'';
+  return`<div class="battle-char ${ie?'enemy':''} ${act} ${dead} ${br}" data-uid="${u.uid}"><div class="energy-ring" style="background:conic-gradient(var(--gold) ${eP}%, transparent ${eP}%)"></div><div class="char-avatar" style="background:${ec};border-color:${ec}">${u.name[0]}</div><div><div class="char-top">${u.name}${'★'.repeat(u.star)}${bk}${dt}${sd}</div><div style="display:flex;flex-direction:column;gap:1px"><div class="bar-wrap"><div class="bar-fill" style="width:${hpP}%;background:${hpC}"></div><div class="shield-bar" style="width:${shP}%"></div></div>${u.maxToughness?`<div class="bar-wrap" style="height:3px"><div class="bar-fill tough-fill" style="width:${tP}%"></div></div>`:''}<div style="font-size:.45rem;color:var(--muted)">${Math.max(0,u.hp)}/${u.maxHp}${u.pos==='back'&&!ie?' 后排':''}</div></div></div></div>`};
+  document.getElementById('battle-ally').innerHTML='<div style="font-size:.65rem;font-weight:700;color:var(--gold);margin-bottom:.1rem">我方</div>'+allies.map(a=>rU(a,false)).join('');
+  document.getElementById('battle-enemy').innerHTML='<div style="font-size:.65rem;font-weight:700;color:var(--red);margin-bottom:.1rem">敌方</div>'+enemies.map(e=>rU(e,true)).join('');
+}
+function showResult(won,allies,enemies,bonuses){
+  showScreen('result-screen');const t=document.getElementById('result-title'),r=document.getElementById('result-rewards'),n=document.getElementById('next-btn-text');
+  if(won){state.streak++;const goldR=3+state.streak*2+(bonuses.goldPerBattle||0);state.gold+=goldR;t.className='result-title result-win';t.textContent='完胜';r.innerHTML=`<div style="display:flex;flex-direction:column;gap:.3rem;font-size:.8rem"><div><i class="fas fa-coins" style="color:var(--gold)"></i> +${goldR}💰</div><div><i class="fas fa-fire" style="color:orange"></i> ${state.streak}连胜</div><div style="color:var(--muted);font-size:.65rem">击杀${battleState.killCount}→晶矿已生成</div></div>`}
+  else{state.streak=0;const dmg=3+Math.floor(state.node/3);state.hp=Math.max(0,state.hp-dmg);t.className='result-title result-lose';t.textContent='战败';r.innerHTML=`<div style="font-size:.8rem"><i class="fas fa-heart-crack" style="color:var(--red)"></i> -${dmg} 生命 (剩${state.hp})</div>`}
+  n.textContent=state.hp<=0?'游戏结束':state.node>=state.maxNodes?'通关结算':'下一节点';
+}
+function nextNode(){
+  if(state.hp<=0||state.node>=state.maxNodes){initState();state.shop=genShop();showScreen('game-screen');renderAll();showToast(state.hp<=0?'游戏结束':'恭喜通关!','info');return}
+  state.node++;state.freeRefresh=true;state.shop=genShop();state.phase='prep';showScreen('game-screen');renderAll();
+}
+function showBondInfo(){const m=document.getElementById('bond-modal'),c=document.getElementById('bond-modal-content');let h='';Object.entries(BOND_DATA).forEach(([name,data])=>{h+=`<div style="margin-bottom:.4rem;padding:.3rem;background:var(--card);border-radius:5px;border:1px solid var(--border);font-size:.7rem"><div style="font-weight:700;color:var(--gold)"><i class="fas ${data.icon}"></i> ${name}</div><div style="color:var(--muted);font-size:.6rem">${data.desc}</div><div style="font-size:.55rem;margin-top:.1rem">${data.tiers.map((t,i)=>`<span style="color:var(--cost${Math.min(i+2,5)})">${t}人:${Object.entries(data.bonus[i]).map(([k,v])=>k+'+'+Math.round(v*100)+'%').join(',')}</span>`).join(' | ')}</div></div>`});c.innerHTML=h;m.classList.add('active')}
+function showToast(msg,type){const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2000)}
+
+document.addEventListener('click',e=>{const es=e.target.closest('.equip-slot');if(!es)return;const idx=parseInt(es.dataset.equipIdx);if(isNaN(idx))return;const eid=state.equips[idx];if(!eid)return;if(eid==='recruit5'){state.equips.splice(idx,1);const pool=CHAR_DATA.filter(c=>c.cost===5);const ch=pool[Math.floor(Math.random()*pool.length)];if(state.bench.length<12){state.bench.push({uid:makeUID(),id:ch.id,star:1,equips:[]});showToast(`招募 ${ch.name}!`,'success')}else showToast('备战席满','error');renderAll()}});
+
+function initParticles(){const cv=document.getElementById('particles'),ctx=cv.getContext('2d');let W,H;const ps=[];function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight}resize();addEventListener('resize',resize);for(let i=0;i<35;i++)ps.push({x:Math.random()*2e3,y:Math.random()*1200,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.2,vy:-Math.random()*.3-.05,a:Math.random()*.3+.05});(function draw(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.1,p.r),0,Math.PI*2);ctx.fillStyle=`rgba(240,180,41,${p.a})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.y<-10){p.y=H+10;p.x=Math.random()*W}if(p.x<-10)p.x=W+10;if(p.x>W+10)p.x=-10});requestAnimationFrame(draw)})()}
+function startGame(){initState();state.shop=genShop();showScreen('game-screen');renderAll();showToast('购买角色，升级人口，搭配羁绊','info')}
+initParticles();
+</script>
 </body>
 </html>
+
